@@ -1,0 +1,11 @@
+from: markdown+tex_math_dollars
+to: html5
+standalone: true
+embed-resources: true
+template: templates/archive.html
+css:
+  - static/archive.css
+  - static/katex-swap.css
+highlight-style: tango
+filters:
+  - pandoc-katex

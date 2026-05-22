@@ -1,0 +1,29 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
+  font-weight: normal;
+  font-size: 18px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+body {
+  padding: 1em;
+  margin: 0;
+  max-width: 40em;
+  width: 100%;
+  margin: auto;
+}
+
+code {
+  font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  font-weight: normal;
+  font-size: 0.9em;
+}
+
+.katex-display {
+  overflow: auto hidden;
+}
