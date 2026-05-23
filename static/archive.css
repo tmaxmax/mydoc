@@ -44,3 +44,8 @@ blockquote :first-child {
 blockquote :last-child {
   margin-bottom: 0;
 }
+
+hr {
+  color: whitesmoke;
+  margin: 2em 0;
+}
