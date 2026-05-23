@@ -1,5 +1,11 @@
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+*:not(dialog) {
+  margin: 0;
 }
 
 html {
@@ -7,15 +13,72 @@ html {
   font-weight: normal;
   font-size: 18px;
   line-height: 1.5;
-  margin: 0;
 }
 
 body {
   padding: 1em;
-  margin: 0;
   max-width: 40em;
   width: 100%;
   margin: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: break-word;
+}
+
+p {
+  text-wrap: pretty;
+  margin: 1rem 0;
+}
+
+blockquote {
+  margin: 1rem 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  text-wrap: balance;
+  line-height: calc(1em + 0.5rem);
+  margin: 1rem 0;
+}
+
+h1 {
+  margin: 2rem 0;
+}
+
+h2 {
+  margin: 1.6rem 0;
+}
+
+h3 {
+  margin: 1.2rem 0;
 }
 
 code {
@@ -26,10 +89,10 @@ code {
 
 .katex-display {
   overflow: auto hidden;
+  scrollbar-width: thin;
 }
 
 blockquote {
-  margin: 0;
   padding-left: 2em;
   padding-top: 0.7em;
   padding-bottom: 0.7em;
