@@ -1,0 +1,28 @@
+{
+  "name": "mydoc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.2.2",
+      "onFail": "download"
+    }
+  },
+  "type": "module",
+  "dependencies": {
+    "@mathjax/mathjax-stix2-font": "^4.1.2",
+    "cheerio": "^1.2.0",
+    "highlight.js": "^11.11.1",
+    "katex": "^0.17.0",
+    "mathjax-node": "^2.1.1",
+    "pandoc-filter": "^2.2.0"
+  }
+}

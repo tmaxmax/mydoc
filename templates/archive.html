@@ -7,26 +7,8 @@
     $for(css)$
     <link rel="stylesheet" href="$css$" />
     $endfor$
-    <style>
-      $highlighting-css$
-    </style>
-    <noscript>
-      <style>
-        .katex-html {
-          display: none !important;
-        }
-        .katex-mathml {
-          all: unset !important;
-        }
-      </style>
-    </noscript>
   </head>
   <body>
-    $body$
-    <script src="static/katex.js"></script>
-    <script src="static/auto-render.js"></script>
-    <script>
-      renderMathInElement(document.body);
-    </script>
+$body$
   </body>
 </html>

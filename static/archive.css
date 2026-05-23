@@ -27,3 +27,20 @@ code {
 .katex-display {
   overflow: auto hidden;
 }
+
+blockquote {
+  margin: 0;
+  padding-left: 2em;
+  padding-top: 0.7em;
+  padding-bottom: 0.7em;
+  background-color: whitesmoke;
+  border-left: 5px solid lightgray;
+}
+
+blockquote :first-child {
+  margin-top: 0;
+}
+
+blockquote :last-child {
+  margin-bottom: 0;
+}

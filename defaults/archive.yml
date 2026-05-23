@@ -3,9 +3,10 @@ to: html5
 standalone: true
 embed-resources: true
 template: templates/archive.html
+syntax-highlighting: none
 css:
   - static/archive.css
   - static/katex-swap.css
-highlight-style: tango
+  - static/highlight.css
 filters:
-  - pandoc-katex
+  - filters/archive.js
