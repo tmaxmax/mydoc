@@ -1,2 +1,4 @@
+allowBuilds:
+  canvas: set this to true or false
 minimumReleaseAgeExclude:
   - katex@0.17.0

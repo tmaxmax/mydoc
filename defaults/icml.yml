@@ -1,5 +1,4 @@
 from: markdown+tex_math_dollars
-to: html5
-syntax-highlighting: none
+to: icml 
 filters:
-  - filters/icml-html.js
+  - filters/icml.js
