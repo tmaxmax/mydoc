@@ -26,21 +26,21 @@ const alignments = new Map();
 pandoc.stdio(async (value, format, meta) => {
   if (value.t === "Math") {
     const [type, math] = value.c;
-    const ex = 7;
+    const exToPx = 7;
     const svg = await mathjax.typeset({
       math,
       format: type.t === "DisplayMath" ? "TeX" : "inline-TeX",
       svg: true,
-      ex,
+      ex: exToPx,
     });
 
     const $ = cheerio.load(svg.svg, null, false);
     const $svg = $("svg");
 
-    const factor = ex / 1.333;
-    const width = Number.parseFloat($svg.attr("width")) * factor;
-    const height = Number.parseFloat($svg.attr("height")) * factor;
-    const alignment = (Number.parseFloat($svg.attr("style").replace("vertical-align: ", "")) * factor).toFixed(3);
+    const exToPt = exToPx / 1.333;
+    const width = Number.parseFloat($svg.attr("width")) * exToPt;
+    const height = Number.parseFloat($svg.attr("height")) * exToPt;
+    const alignment = (Number.parseFloat($svg.attr("style").replace("vertical-align: ", "")) * exToPt).toFixed(3);
 
     let objectStyle = "DisplayMath";
     if (type.t === "InlineMath") {
