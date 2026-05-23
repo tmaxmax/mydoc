@@ -6,7 +6,6 @@ import hljs from "highlight.js";
 
 pandoc.stdio((value, format, meta) => {
   if (value.t === "Math") {
-    console.error(value.c);
     const [type, math] = value.c;
     const html = katex.renderToString(math.trim(), {
       displayMode: type.t === "DisplayMath",
