@@ -60,23 +60,27 @@ function hasClassPrefix(e, ...prefixes) {
 }
 
 /**
- * @param {Element} e
+ * @param {readonly Element[]} bases
  * @param {DOMRect} tag
  * @returns {Readonly<Interval>}
  */
-function mathSize(e, tag) {
-  const rect = e.getBoundingClientRect();
-  if (e.children.length === 0 || e instanceof SVGElement) {
-    const inter = (e instanceof SVGElement || hasClassPrefix(e, "m", "delim")) && intersect(rect, tag);
-    return inter ? rect : EMPTY;
+function mathSize(bases, tag) {
+  const s = [...bases];
+
+  let ret = EMPTY;
+  while (s.length) {
+    const e = s.pop();
+    if (e.children.length === 0 || e instanceof SVGElement) {
+      const rect = e.getBoundingClientRect();
+      if ((e instanceof SVGElement || hasClassPrefix(e, "m", "delim")) && intersect(rect, tag)) {
+        ret = union(ret, rect);
+      }
+    } else {
+      s.push(...e.children);
+    }
   }
 
-  let s = EMPTY;
-  for (const c of e.children) {
-    s = union(s, mathSize(c, tag));
-  }
-
-  return s;
+  return ret;
 }
 
 for (const e of /** @type {NodeListOf<HTMLElement>} **/ (document.querySelectorAll(".katex-display:has(.tag)"))) {
@@ -84,7 +88,7 @@ for (const e of /** @type {NodeListOf<HTMLElement>} **/ (document.querySelectorA
   const bases = /** @type {HTMLElement[]} */ ([...e.querySelectorAll(".katex-html > .base")]);
   const base = bases.reduce((m, e) => union(m, e.getBoundingClientRect()), EMPTY);
   const tag = e.querySelector(".tag .mord.text").getBoundingClientRect();
-  const math = bases.reduce((m, e) => union(m, mathSize(e, tag)), EMPTY);
+  const math = mathSize(bases, tag);
 
   const spaceForTag = Math.max(base.right - math.right, 0);
   if (spaceForTag >= tag.width) {

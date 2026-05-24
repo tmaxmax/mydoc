@@ -108,7 +108,7 @@ code {
 }
 
 .katex-display.overflow .katex-html {
-  padding-left: max(var(--offset), 0);
+  padding-left: var(--offset);
 }
 
 blockquote {
