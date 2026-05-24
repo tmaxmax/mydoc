@@ -18,12 +18,13 @@ if (!MD_FILE) {
   process.exit(1);
 }
 
+const DEFAULTS = "defaults/archive.yml";
 const PORT = 8080;
 
 let html;
 async function build(signal) {
   try {
-    const { stdout, stderr } = await exec("pandoc", ["-d", "defaults/archive.yml", MD_FILE], {
+    const { stdout, stderr } = await exec("pandoc", ["-d", DEFAULTS, MD_FILE], {
       signal,
       maxBuffer: 64 * 1024 * 1024,
     });
@@ -82,7 +83,7 @@ wss.on("connection", (ws) => {
   ws.on("close", () => clients.delete(ws));
 });
 
-const watcher = chokidar.watch(["template", "static", "filters", "defaults/archive.yml"], {
+const watcher = chokidar.watch(["template", "static", "filters", DEFAULTS, MD_FILE], {
   persistent: true,
   ignoreInitial: true,
 });
