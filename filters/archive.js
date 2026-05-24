@@ -10,7 +10,7 @@ pandoc.stdio((value, format, meta) => {
     const html = katex.renderToString(math.trim(), {
       displayMode: type.t === "DisplayMath",
       output: "htmlAndMathml",
-      throwOnError: false,
+      strict: "error",
     });
 
     return pandoc.RawInline("html", html);
@@ -29,4 +29,36 @@ pandoc.stdio((value, format, meta) => {
 
     return pandoc.RawInline("html", html);
   }
+
+  const c = getInlineContent(value);
+  for (let i = 0; i < c.length; i++) {
+    const m = c[i];
+    if (m.t === "Math") {
+      const start = i > 0 && c[i - 1].t === "Str" ? i - 1 : i;
+      let end = i;
+      for (; end < c.length && (c[end].t === "Str" || c[end].t === "Math"); end++);
+
+      const s = pandoc.Span(pandoc.attributes({ classes: ["no-wrap"] }), []);
+      s.c[1] = c.splice(start, end - start, s);
+    }
+  }
+
+  return value;
 });
+
+/**
+ * @param {pandoc.AnyElt} value
+ * @return {pandoc.Inline[]}
+ */
+function getInlineContent(value) {
+  switch (value.t) {
+    case "Para":
+      return value.c;
+    case "Header":
+      return value.c[2];
+    case "Plain":
+      return value.c;
+    default:
+      return [];
+  }
+}
