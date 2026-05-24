@@ -83,7 +83,7 @@ wss.on("connection", (ws) => {
   ws.on("close", () => clients.delete(ws));
 });
 
-const watcher = chokidar.watch(["template", "static", "filters", DEFAULTS, MD_FILE], {
+const watcher = chokidar.watch(["templates", "static", "filters", DEFAULTS, MD_FILE], {
   persistent: true,
   ignoreInitial: true,
 });
