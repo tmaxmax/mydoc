@@ -168,7 +168,7 @@ a:visited {
     visibility: hidden;
   }
 
-  // TODO: Avoid breaking images and code blocks across pages.
+  /* TODO: Avoid breaking images and code blocks across pages. */
 }
 
 #dark-mode > input {
@@ -323,7 +323,7 @@ a:visited {
   --dark-code-hue-6-2: #e6c07b;
 }
 
-// Code themes are Atom One Dark and Atom One Light
+/* Code themes are Atom One Dark and Atom One Light */
 
 pre code.hljs {
   display: block;
