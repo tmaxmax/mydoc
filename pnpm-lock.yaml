@@ -207,15 +207,15 @@ importers:
 
   .:
     dependencies:
-      '@mathjax/mathjax-stix2-font':
-        specifier: ^4.1.2
-        version: 4.1.2
       '@resvg/resvg-js':
         specifier: ^2.6.2
         version: 2.6.2
       cheerio:
         specifier: ^1.2.0
         version: 1.2.0
+      chokidar:
+        specifier: ^5.0.0
+        version: 5.0.0
       highlight.js:
         specifier: ^11.11.1
         version: 11.11.1
@@ -228,11 +228,11 @@ importers:
       pandoc-filter:
         specifier: ^2.2.0
         version: 2.2.0
+      ws:
+        specifier: ^8.21.0
+        version: 8.21.0
 
 packages:
-
-  '@mathjax/mathjax-stix2-font@4.1.2':
-    resolution: {integrity: sha512-+KQlFrF87BELgXsgDS66OtJW+hgViW+NCpVeE0mwvaWbKzgrycxNeN9oGBXXdM6nel0DOJIleAAOPflhunxmsg==}
 
   '@resvg/resvg-js-android-arm-eabi@2.6.2':
     resolution: {integrity: sha512-FrJibrAk6v29eabIPgcTUMPXiEz8ssrAk7TXxsiZzww9UTQ1Z5KAbFJs+Z0Ez+VZTYgnE5IQJqBcoSiMebtPHA==}
@@ -378,6 +378,10 @@ packages:
   cheerio@1.2.0:
     resolution: {integrity: sha512-WDrybc/gKFpTYQutKIK6UvfcuxijIZfMfXaYm8NMsPQxSYvf+13fXUJ4rztGGbJcBQ/GF55gvrZ0Bc0bj/mqvg==}
     engines: {node: '>=20.18.1'}
+
+  chokidar@5.0.0:
+    resolution: {integrity: sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw==}
+    engines: {node: '>= 20.19.0'}
 
   combined-stream@1.0.8:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
@@ -643,6 +647,10 @@ packages:
     resolution: {integrity: sha512-mzR4sElr1bfCaPJe7m8ilJ6ZXdDaGoObcYR0ZHSsktM/Lt21MVHj5De30GQH2eiZ1qGRTO7LCAzQsUeXTNexWQ==}
     engines: {node: '>=0.6'}
 
+  readdirp@5.0.0:
+    resolution: {integrity: sha512-9u/XQ1pvrQtYyMpZe7DXKv2p5CNvyVwzUB6uhLAnQwHMSgKMBR62lc7AHljaeteeHXn11XTAaLLUVZYVZyuRBQ==}
+    engines: {node: '>= 20.19.0'}
+
   request-promise-core@1.1.4:
     resolution: {integrity: sha512-TTbAfBBRdWD7aNNOoVOBH4pN/KigV6LyapYNNlAPA8JwbovRti1E88m3sYAwsLi5ryhPKsE9APwnjFTgdUjTpw==}
     engines: {node: '>=0.10.0'}
@@ -764,12 +772,22 @@ packages:
       utf-8-validate:
         optional: true
 
+  ws@8.21.0:
+    resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   xml-name-validator@3.0.0:
     resolution: {integrity: sha512-A5CUptxDsvxKJEU3yO6DuWBSJz/qizqzJKOMIfUJHETbBw/sFaDxgd6fxm1ewUaM0jZ444Fc5vC5ROYurg/4Pw==}
 
 snapshots:
-
-  '@mathjax/mathjax-stix2-font@4.1.2': {}
 
   '@resvg/resvg-js-android-arm-eabi@2.6.2':
     optional: true
@@ -890,6 +908,10 @@ snapshots:
       parse5-parser-stream: 7.1.2
       undici: 7.25.0
       whatwg-mimetype: 4.0.0
+
+  chokidar@5.0.0:
+    dependencies:
+      readdirp: 5.0.0
 
   combined-stream@1.0.8:
     dependencies:
@@ -1175,6 +1197,8 @@ snapshots:
 
   qs@6.5.5: {}
 
+  readdirp@5.0.0: {}
+
   request-promise-core@1.1.4(request@2.88.2):
     dependencies:
       lodash: 4.18.1
@@ -1303,5 +1327,7 @@ snapshots:
   ws@5.2.4:
     dependencies:
       async-limiter: 1.0.1
+
+  ws@8.21.0: {}
 
   xml-name-validator@3.0.0: {}
