@@ -103,12 +103,12 @@ code {
 }
 
 .katex-display.overflow .katex-html::after {
-  content: '\200b';
-  padding-right: var(--tag-size);
+  content: "\200b";
+  padding-right: calc(var(--tag-size) + 0.4em);
 }
 
 .katex-display.overflow .katex-html {
-  padding-left: var(--offset);
+  padding-left: max(var(--offset), 0);
 }
 
 blockquote {
