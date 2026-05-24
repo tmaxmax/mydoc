@@ -161,6 +161,8 @@ a:visited {
   #dark-mode {
     visibility: hidden;
   }
+
+  // TODO: Avoid breaking images and code blocks across pages.
 }
 
 #dark-mode > input {
@@ -237,7 +239,6 @@ a:visited {
     --code-hue-5-2: var(--dark-code-hue-5-2);
     --code-hue-6: var(--dark-code-hue-6);
     --code-hue-6-2: var(--dark-code-hue-6-2);
-    --heading-font-weight: var(--dark-heading-font-weight);
   }
 }
 
@@ -273,7 +274,6 @@ a:visited {
     --code-hue-5-2: var(--dark-code-hue-5-2);
     --code-hue-6: var(--dark-code-hue-6);
     --code-hue-6-2: var(--dark-code-hue-6-2);
-    --heading-font-weight: var(--dark-heading-font-weight);
   }
 }
 
@@ -284,6 +284,7 @@ a:visited {
   --blockquote-bg: whitesmoke;
   --blockquote-border: lightgray;
   --hr: whitesmoke;
+  // Atom One Light
   --code-base: #fafafa;
   --code-mono-1: #383a42;
   --code-mono-2: #686b77;
@@ -296,7 +297,6 @@ a:visited {
   --code-hue-5-2: #c91243;
   --code-hue-6: #986801;
   --code-hue-6-2: #c18401;
-  --heading-font-weight: bold;
 
   --dark-bg: black;
   --dark-text: white;
@@ -304,6 +304,7 @@ a:visited {
   --dark-blockquote-bg: #444444;
   --dark-blockquote-border: #888888;
   --dark-hr: dimgray;
+  // Atom One Dark with slightly dimmed background.
   --dark-code-base: #282c34c0;
   --dark-code-mono-1: #abb2bf;
   --dark-code-mono-2: #818896;
@@ -316,7 +317,6 @@ a:visited {
   --dark-code-hue-5-2: #be5046;
   --dark-code-hue-6: #d19a66;
   --dark-code-hue-6-2: #e6c07b;
-  --dark-heading-font-weight: 800;
 }
 
 pre code.hljs {

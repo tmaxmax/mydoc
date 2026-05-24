@@ -1,6 +1,22 @@
 "use strict";
 
-/** @type {Map<Element, { thresh: number, math: number, base: number }>} */
+// Display math tags have position: fixed and are therefore taken out
+// of the document flow. When the display math containers overflow
+// the tags overlap with the equation. The script below adds additional
+// spacing to the right side as needed on overflow such that there is
+// enough scroll space for the tag to not show above the equation,
+// while still keeping the equation itself perfectly centered.
+// A noscript fallback adds a fixed padding to the right to make space
+// for the tag. This slightly decenters equations, though.
+
+/**
+ * The threshold at which to trigger overflow, the size of the
+ * math equation at the same height as the tag and the size of the
+ * full equation are precomputed on page load. The content is static
+ * and the computation is expensive due to many getBoundingClientRect calls.
+ *
+ * @type {Map<Element, { thresh: number, math: number, base: number }>}
+ */
 const widths = new Map();
 
 const o = new ResizeObserver((entries) => {
@@ -17,6 +33,8 @@ const o = new ResizeObserver((entries) => {
     }
 
     if (e.classList.contains("overflow")) {
+      // Overflow sets left alignment so the script
+      // repositions the equation to be centered again.
       e.style.setProperty("--offset", (inlineSize - base) / 2 + "px");
     }
   }
@@ -60,6 +78,10 @@ function hasClassPrefix(e, ...prefixes) {
 }
 
 /**
+ * Get the start and end of all elements within bases
+ * which can overlap with tag on overflow – i.e. all
+ * elements positioned at the same height.
+ *
  * @param {readonly Element[]} bases
  * @param {DOMRect} tag
  * @returns {Readonly<Interval>}

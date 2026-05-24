@@ -30,6 +30,9 @@ pandoc.stdio((value, format, meta) => {
     return pandoc.RawInline("html", html);
   }
 
+  // Modify the markup so that inline math doesn't wrap and
+  // inline math with text immediately afterwards, like punctuation,
+  // remain together when wrapping.
   const c = getInlineContent(value);
   for (let i = 0; i < c.length; i++) {
     const m = c[i];
