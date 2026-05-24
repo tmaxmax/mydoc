@@ -21,6 +21,7 @@ body {
   width: 100%;
   margin: auto;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 img,
@@ -87,15 +88,22 @@ code {
   font-size: 0.9em;
 }
 
-.katex-display {
+.katex-display > .katex {
   overflow: auto hidden;
   scrollbar-width: thin;
 }
 
+.katex-display .tag {
+  user-select: none;
+  transition: opacity 0.15s ease-out;
+}
+
+.katex-display .tag.hide {
+  opacity: 0;
+}
+
 blockquote {
-  padding-left: 2em;
-  padding-top: 0.7em;
-  padding-bottom: 0.7em;
+  padding: 1em 0.7em;
   background-color: whitesmoke;
   border-left: 5px solid lightgray;
 }

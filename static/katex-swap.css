@@ -1215,6 +1215,7 @@
   display: block;
   margin: 1em 0;
   text-align: center;
+  will-change: transform;
 }
 .katex-display > .katex {
   display: block;
@@ -1222,35 +1223,20 @@
   white-space: nowrap;
 }
 .katex-display > .katex > .katex-html {
-  display: grid;
+  display: block;
   position: relative;
-  grid-template-columns: 1fr auto 1fr;
-}
-.katex-display > .katex > .katex-html > .base {
-  grid-column: 2;
 }
 .katex-display > .katex > .katex-html > .tag {
-  grid-column: 3;
-  width: min-content;
-  margin-left: auto;
-  position: sticky;
+  position: fixed;
   right: 0;
-  padding-right: 2px; // fix overflow
 }
-
 .katex-display.leqno > .katex > .katex-html > .tag {
-  grid-row: 1;
-  grid-column: 1;
-  margin-left: initial;
   left: 0;
+  right: auto;
 }
-
 .katex-display.fleqn > .katex {
   text-align: left;
-}
-
-.katex-display.fleqn > .katex > .katex-html {
-  grid-template-columns: minmax(2em, auto) auto 1fr;
+  padding-left: 2em;
 }
 
 body {
