@@ -1,4 +1,4 @@
 .katex-display:has(.tag) .katex-html::after {
   content: "\200b";
-  padding-right: 2.4em;
+  padding-right: 2em;
 }

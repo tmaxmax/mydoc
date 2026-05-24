@@ -13,11 +13,12 @@ html {
   font-weight: normal;
   font-size: 18px;
   line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  padding: calc(env(safe-area-inset-top) + 1em) calc(env(safe-area-inset-right) + 1em)
-    calc(env(safe-area-inset-bottom) + 1em) calc(env(safe-area-inset-left) + 1em);
+  padding: calc(env(safe-area-inset-top) + 1rem) calc(env(safe-area-inset-right) + 1rem)
+    calc(env(safe-area-inset-bottom) + 1rem) calc(env(safe-area-inset-left) + 1rem);
   max-width: 40em;
   width: 100%;
   margin: auto;
@@ -86,7 +87,7 @@ h3 {
 code {
   font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
   font-weight: normal;
-  font-size: 0.9em;
+  font-size: 0.85em;
 }
 
 .katex-display > .katex {
