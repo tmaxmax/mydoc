@@ -7,6 +7,5 @@ syntax-highlighting: none
 css:
   - static/archive.css
   - static/katex-swap.css
-  - static/highlight.css
 filters:
   - filters/archive.js
