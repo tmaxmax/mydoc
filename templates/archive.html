@@ -7,38 +7,9 @@
     $for(css)$
     <link rel="stylesheet" href="$css$" />
     $endfor$
+    <script src="static/tags.js" defer></script>
   </head>
   <body>
 $body$
-    <script>
-      document.querySelectorAll(".katex:has(.tag)").forEach((e) => {
-        const tag = e.querySelector(".tag");
-        let timer;
-        tag.addEventListener("pointerover", (ev) => {
-          if (ev.pointerType === "touch" || e.scrollWidth <= e.clientWidth) return;
-          tag.classList.add("hide");
-          clearTimeout(timer);
-          e.addEventListener(
-            "pointerleave",
-            (ev) => {
-              timer = setTimeout(() => tag.classList.remove("hide"), 100);
-            },
-            { once: true },
-          );
-        });
-        e.addEventListener("pointermove", (ev) => {
-          if (ev.pointerType !== "touch" || e.scrollWidth <= e.clientWidth) return;
-          tag.classList.add("hide");
-          clearTimeout(timer);
-          e.addEventListener(
-            "pointerleave",
-            (ev) => {
-              timer = setTimeout(() => tag.classList.remove("hide"), 2000);
-            },
-            { once: true },
-          );
-        });
-      });
-    </script>
   </body>
 </html>

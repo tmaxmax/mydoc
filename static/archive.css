@@ -95,11 +95,20 @@ code {
 
 .katex-display .tag {
   user-select: none;
-  transition: opacity 0.15s ease-out;
 }
 
-.katex-display .tag.hide {
-  opacity: 0;
+.katex-display.overflow,
+.katex-display.overflow > .katex {
+  text-align: left;
+}
+
+.katex-display.overflow .katex-html::after {
+  content: '\200b';
+  padding-right: var(--tag-size);
+}
+
+.katex-display.overflow .katex-html {
+  padding-left: var(--offset);
 }
 
 blockquote {
