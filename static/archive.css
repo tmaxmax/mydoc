@@ -157,6 +157,12 @@ a:visited {
   z-index: 1;
 }
 
+@media (min-width: 52em) {
+  #dark-mode {
+    transform: translateX(calc(100% + 0.5rem));
+  }
+}
+
 @media print {
   #dark-mode {
     visibility: hidden;
@@ -284,7 +290,6 @@ a:visited {
   --blockquote-bg: whitesmoke;
   --blockquote-border: lightgray;
   --hr: whitesmoke;
-  // Atom One Light
   --code-base: #fafafa;
   --code-mono-1: #383a42;
   --code-mono-2: #686b77;
@@ -304,7 +309,6 @@ a:visited {
   --dark-blockquote-bg: #444444;
   --dark-blockquote-border: #888888;
   --dark-hr: dimgray;
-  // Atom One Dark with slightly dimmed background.
   --dark-code-base: #282c34c0;
   --dark-code-mono-1: #abb2bf;
   --dark-code-mono-2: #818896;
@@ -318,6 +322,8 @@ a:visited {
   --dark-code-hue-6: #d19a66;
   --dark-code-hue-6-2: #e6c07b;
 }
+
+// Code themes are Atom One Dark and Atom One Light
 
 pre code.hljs {
   display: block;
