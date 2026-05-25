@@ -147,6 +147,15 @@ a:visited {
   font-style: italic;
 }
 
+header {
+  margin: 2rem 0;
+}
+
+header h1,
+header p {
+  margin: 0.5rem 0;
+}
+
 #dark-mode {
   display: block;
   width: max-content;
@@ -182,7 +191,8 @@ a:visited {
   overflow: hidden;
 }
 
-#dark-mode + h1 {
+#dark-mode + h1,
+#dark-mode + header {
   margin-top: 1rem;
 }
 
