@@ -1,6 +1,6 @@
 # mydoc
 
-Pandoc pipeline to generate HTML for [archive.quateo.com][1] and ICML from Markdown + LaTeX documents.
+Pandoc pipeline to generate HTML for [archive.quateo.com][1] and Adobe InDesign ICML from Markdown + LaTeX documents.
 
 ## Install
 
