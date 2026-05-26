@@ -4,7 +4,7 @@ Pandoc pipeline to generate HTML for [archive.quateo.com][1] and Adobe InDesign 
 
 ## Install
 
-Requires Node and [pnpm][https://pnpm.io/].
+Requires Node and [pnpm](https://pnpm.io/).
 
 ```sh
 $ pnpm ci
@@ -19,11 +19,11 @@ Link to any location present in `$PATH`.
 
 For HTML, the filter:
 
-- convert math equations within `$ ... $` and `$$ ... $$` to plain HTML and MathML for accessibility and reader mode using [KaTeX][https://katex.org/]
-- convert code blocks to HTML with syntax highlighting using [highlight.js][https://highlightjs.org/]
+- convert math equations within `$ ... $` and `$$ ... $$` to plain HTML and MathML for accessibility and reader mode using [KaTeX](https://katex.org/)
+- convert code blocks to HTML with syntax highlighting using [highlight.js](https://highlightjs.org/)
 - wraps adjacent inline math and strings in additional markup to prevent the browser from breaking them across multiple lines
     - this avoids awkward breaks where an equation is split in the middle or punctuation after an equation goes on the next line
-- outputs self-contained pages with all resources embedded (images, CSS, scripts) so they're archivable with [web.archive.org][https://web.archive.org] and downloadable
+- outputs self-contained pages with all resources embedded (images, CSS, scripts) so they're archivable with [web.archive.org](https://web.archive.org) and downloadable
     - while some documents are sizable, gzip on the server reduces size by 50-70% and internet is fast these days
 
 For ICML, the filter:
