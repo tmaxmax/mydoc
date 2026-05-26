@@ -1,23 +1,48 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ROOT="$(dirname "$(realpath "$0")")"
+error() {
+    echo "$@" >&2; exit 1
+}
 
-if [ $# -ne 2 ]; then
-    echo "Usage: mydoc <input-file> <output-file>"
-    exit 1
+infer_defaults() {
+    case "${1##*.}" in
+        html) echo "archive" ;;
+        icml) echo "icml"   ;;
+    esac
+}
+
+PROJECT_ROOT="$(dirname "$(readlink -f "$0")")"
+
+if [ $# -lt 1 ]; then
+    error "Usage: mydoc [input-file|input-format] <output-file|defaults-name> [pandoc options...]"
 fi
 
-INPUT="$1"
-OUTPUT="$2"
-shift 2
+INPUT_ARGS=()
 
-case "${OUTPUT##*.}" in
-    html)  FORMAT="archive" ;;
-    icml)  FORMAT="icml"   ;;
-    *)     echo "Unknown output format" >&2; exit 1 ;;
-esac
+if [[ $# -eq 1 ]]; then
+    OUTPUT="$1"
+    shift
+else
+    INPUT_ARGS=("-f" "$1")
+    OUTPUT="$2"
+    if [[ "$1" =~ \.[a-zA-Z0-9]+$ ]]; then
+        input="$1"
+        [[ "$input" != /* ]] && input="$PWD/$input"
+        INPUT_ARGS=("$input")
+    fi
+    shift 2
+fi
 
-DEFAULTS="$PROJECT_ROOT/defaults/${FORMAT}.yml"
+DEFAULTS="$PROJECT_ROOT/defaults/$OUTPUT.yml"
+if [[ -f "$DEFAULTS" ]]; then
+    OUTPUT="-"
+else
+    [[ "$OUTPUT" != /* ]] && OUTPUT="$PWD/$OUTPUT"
+    name="$(infer_defaults "$OUTPUT")"
+    [[ -z "$name" ]] && error "Error: cannot infer output format"
+    DEFAULTS="$PROJECT_ROOT/defaults/$name.yml"
+fi
 
-exec pandoc -d "$DEFAULTS" "$INPUT" -o "$OUTPUT" "$@"
+cd "$PROJECT_ROOT"
+exec pandoc "-d" "$DEFAULTS" "${INPUT_ARGS[@]}" "-o" "$OUTPUT" "$@"
