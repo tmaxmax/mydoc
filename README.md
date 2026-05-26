@@ -39,4 +39,14 @@ Pandoc does have syntax highlighting included but I don't like it. It also suppo
 
 The KaTeX CSS is copied because I changed styling of math tags. They are set to have `position: fixed` within the display container such that on overflow when scrolling they keep their position on the right. I also removed the WOFF and TTF fonts because [WOFF2 is baseline](https://caniuse.com/woff2).
 
+## Development
+
+For working on the HTML output run:
+
+```sh
+$ node serve.js path/to/sample.md
+```
+
+This opens a local server which serves the rendered `sample.md` and a file watcher that automatically rerenders and reloads the page when changes are made.
+
 [1]: https://archive.quateo.com/grid/rigorous.html
