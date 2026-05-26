@@ -37,4 +37,6 @@ For ICML, the filter:
 
 Pandoc does have syntax highlighting included but I don't like it. It also supports KaTeX/MathJax output but Pandoc outputs documents which render equations client-side and I want the equations fully rendered in HTML instead.
 
+The KaTeX CSS is copied because I changed styling of math tags. They are set to have `position: fixed` within the display container such that on overflow when scrolling they keep their position on the right. I also removed the WOFF and TTF fonts because [WOFF2 is baseline](https://caniuse.com/woff2).
+
 [1]: https://archive.quateo.com/grid/rigorous.html
