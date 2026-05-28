@@ -156,6 +156,10 @@ header p {
   margin: 0.5rem 0;
 }
 
+details summary {
+  user-select: none;
+}
+
 #dark-mode {
   display: grid;
   width: max-content;
