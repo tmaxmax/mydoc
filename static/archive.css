@@ -12,7 +12,7 @@ html {
   font-family: Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
   font-weight: normal;
   font-size: 18px;
-  line-height: 1.8;
+  line-height: 1.7;
   -webkit-text-size-adjust: 100%;
   background-color: var(--bg);
   color: var(--text);
@@ -69,7 +69,7 @@ h4,
 h5,
 h6 {
   text-wrap: balance;
-  line-height: calc(1em + 0.5rem);
+  line-height: calc(1em + 0.7rem);
   margin: 1.2rem 0;
   font-weight: 900;
 }
