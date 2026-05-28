@@ -12,11 +12,15 @@
     </noscript>
   </head>
   <body>
-    <label id="dark-mode">
-      <span class="dark"></span>
-      <span class="light"></span>
-      <input type="checkbox" />
-    </label>
+    <fieldset id="dark-mode">
+      <legend>Theme preference</legend>
+      <input type="radio" id="dark-self" name="theme" value="self" checked />
+      <label for="dark-self"><span class="light">Light</span><span class="dark">Dark</span></label>
+      <input type="radio" id="dark-system" name="theme" value="system" />
+      <label for="dark-system"><span>System default</label>
+      <input type="radio" id="dark-other" name="theme" value="other" />
+      <label for="dark-other"><span class="light">Light</span><span class="dark">Dark</span></label>
+    </fieldset>
 $body$
     <script src="static/archive.js"></script>
   </body>

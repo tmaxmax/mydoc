@@ -2,3 +2,19 @@
   content: "\200b";
   padding-right: 2em;
 }
+
+#dark-mode [value="system"],
+#dark-mode [for="dark-system"] {
+  display: none;
+}
+
+#dark-mode:has(input#dark-self:checked) [for="dark-other"],
+#dark-mode:has(input#dark-other:checked) [for="dark-self"] {
+  opacity: initial;
+  z-index: 1;
+}
+
+#dark-mode:has(input#dark-self:checked:focus-visible) [for="dark-other"],
+#dark-mode:has(input#dark-other:checked:focus-visible) [for="dark-self"] {
+  outline: 2px solid var(--text);
+}
