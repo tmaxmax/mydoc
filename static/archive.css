@@ -12,7 +12,7 @@ html {
   font-family: Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
   font-weight: normal;
   font-size: 18px;
-  line-height: 1.5;
+  line-height: 1.8;
   -webkit-text-size-adjust: 100%;
   background-color: var(--bg);
   color: var(--text);
@@ -55,7 +55,7 @@ h6 {
 
 p {
   text-wrap: pretty;
-  margin: 1rem 0;
+  margin: 1.2rem 0;
 }
 
 blockquote {
@@ -70,20 +70,20 @@ h5,
 h6 {
   text-wrap: balance;
   line-height: calc(1em + 0.5rem);
-  margin: 1rem 0;
+  margin: 1.2rem 0;
   font-weight: 900;
 }
 
 h1 {
-  margin: 2rem 0;
+  margin: 2.2rem 0;
 }
 
 h2 {
-  margin: 1.6rem 0;
+  margin: 1.8rem 0;
 }
 
 h3 {
-  margin: 1.2rem 0;
+  margin: 1.4rem 0;
 }
 
 code {
@@ -182,7 +182,8 @@ header p {
 }
 
 #dark-mode input,
-#dark-mode legend {
+#dark-mode legend,
+#dark-mode label span {
   position: absolute;
   -webkit-clip-path: inset(50%);
   clip-path: inset(50%);
@@ -195,25 +196,16 @@ header p {
 
 #dark-mode + h1,
 #dark-mode + header {
-  margin-top: 1rem;
+  margin-top: 0.8rem;
 }
 
 #dark-mode label {
-  padding: 0.5rem 0.8rem;
+  padding: 0.37rem 0.8rem;
   border-radius: 5px;
   border: 1px solid var(--blockquote-border);
   background-color: var(--bg);
   grid-column: 1 / span 1;
   grid-row: 1 / span 1;
-}
-
-#dark-mode label span {
-  display: inline-block;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-  vertical-align: bottom;
-  transition: width 0.1s ease-out;
 }
 
 #dark-mode label::after {
@@ -315,6 +307,7 @@ pre code.hljs {
   overflow-x: auto;
   padding: 1em;
   border-radius: 0.4rem;
+  line-height: 1.45;
 }
 
 code.hljs {

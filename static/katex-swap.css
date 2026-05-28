@@ -142,7 +142,7 @@
 /* stylelint-disable font-family-no-missing-generic-family-keyword */
 .katex {
   font:
-    normal 1.1em KaTeX_Main,
+    normal 1.18em KaTeX_Main,
     Times New Roman,
     serif;
   line-height: 1.2;
