@@ -1,0 +1,32 @@
+{{ define "register" }}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register</title>
+  </head>
+  <body>
+    <pre></pre>
+    <script>
+      const sessionID = {{ .SessionID }};
+      const registerAddr = {{ .RegisterAddr }};
+      const publicKey = {{ .PublicKey }};
+      const out = document.querySelector('pre')
+
+      publicKey.user.id = Uint8Array.fromBase64(publicKey.user.id, { alphabet: "base64url" })
+      publicKey.challenge = Uint8Array.fromBase64(publicKey.challenge, { alphabet: "base64url" })
+
+      window.addEventListener('load', () => {
+        navigator.credentials.create({ publicKey })
+          .then(credential => {
+            out.textContent = `curl -H 'Content-Type: application/json' -d '${JSON.stringify(credential)}' 'http://${registerAddr}?session=${sessionID}'`
+          })
+          .catch(err => {
+            out.textContent = err
+          })
+      })
+    </script>
+  </body>
+</html>
+{{ end }}

@@ -1,0 +1,43 @@
+{{ define "login" }}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+  </head>
+  <body>
+    <pre></pre>
+    <script>
+      const sessionID = {{ .SessionID }};
+      const publicKey = {{ .PublicKey }};
+      publicKey.challenge = Uint8Array.fromBase64(publicKey.challenge, { alphabet: "base64url" })
+
+      window.addEventListener('load', (e) => {
+        navigator.credentials.get({ publicKey })
+          .then(credential =>
+            fetch("/login", {
+              method: "POST",
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Session-Id': sessionID,
+              },
+              body: JSON.stringify(credential),
+            })
+          )
+          .then((res) => {
+            if (res.ok) {
+              window.location.href = "{{ .RedirectURL }}"
+            } else {
+              return res.text()
+            }
+          })
+          .then((res) => {
+            document.querySelector('pre').textContent = res
+          })
+          .catch(console.error)
+      })
+    </script>
+  </body>
+</html>
+{{ end }}
