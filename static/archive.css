@@ -285,6 +285,17 @@ details summary {
   font-style: italic;
 }
 
+.book p {
+  margin: 0;
+  text-indent: 2rem;
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+.book {
+  margin: 1rem 0;
+}
+
 :root {
   color-scheme: light dark;
 
