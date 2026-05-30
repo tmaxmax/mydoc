@@ -6,4 +6,5 @@ syntax-highlighting: none
 css:
   - static/archive.css
 filters:
+  - filters/hyphens.js
   - filters/archive.js

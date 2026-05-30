@@ -290,6 +290,18 @@ details summary {
   text-indent: 2rem each-line;
   text-align: justify;
   text-justify: inter-word;
+  hyphens: auto;
+}
+
+.poem {
+  text-align: left;
+  text-indent: 2rem each-line hanging;
+}
+
+.poem-indent {
+  text-align: left;
+  text-indent: 2rem each-line hanging;
+  margin-left: 2rem;
 }
 
 .book {
