@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/hmac"
 	"crypto/rand"
@@ -106,17 +107,13 @@ func run() error {
 
 		sessionID := sess.save(session)
 
-		var resp struct {
-			SessionID    string
-			RegisterAddr string
-			PublicKey    template.JS
+		resp := map[string]any{
+			"sessionID":    sessionID,
+			"registerAddr": registerAddr,
+			"publicKey":    creation.Response,
 		}
 
-		resp.SessionID = sessionID
-		resp.RegisterAddr = registerAddr
-		resp.PublicKey = marshalProtocol(creation.Response)
-
-		if err := tmpl.ExecuteTemplate(w, "register", resp); err != nil {
+		if err := tmpl.ExecuteTemplate(w, "register", marshalProtocol(resp)); err != nil {
 			slog.Error("failed to execute register template", "err", err, "session", sessionID)
 			sess.delete(sessionID)
 			return
@@ -163,24 +160,16 @@ func run() error {
 			return
 		}
 
-		var resp struct {
-			SessionID   string
-			RedirectURL string
-			LoginURL    string
-			PublicKey   template.JS
+		sessionID := sess.save(session)
+		resp := map[string]any{
+			"sessionID":   sessionID,
+			"publicKey":   assertion.Response,
+			"loginURL":    loginURL,
+			"redirectURL": cmp.Or(r.Header.Get("X-Redirect-Url"), "/"),
 		}
 
-		resp.SessionID = sess.save(session)
-		resp.PublicKey = marshalProtocol(assertion.Response)
-		resp.LoginURL = loginURL
-
-		resp.RedirectURL = r.Header.Get("X-Redirect-Url")
-		if resp.RedirectURL == "" {
-			resp.RedirectURL = "/"
-		}
-
-		if err := tmpl.ExecuteTemplate(w, "login", resp); err != nil {
-			sess.delete(resp.SessionID)
+		if err := tmpl.ExecuteTemplate(w, "login", marshalProtocol(resp)); err != nil {
+			sess.delete(sessionID)
 			slog.Error("failed to execute register template", "err", err)
 			return
 		}

@@ -8,33 +8,61 @@
   </head>
   <body>
     <pre></pre>
+    <button type="button" style="display: none; padding: 1em">Login</button>
     <script>
-      const sessionID = {{ .SessionID }}
-      const publicKey = {{ .PublicKey }}
+      const { publicKey, sessionID, redirectURL, loginURL } = {{ . }}
 
-      window.addEventListener('load', (e) => {
+      const base64url = (b) => btoa(Array.from(new Uint8Array(b), c => String.fromCodePoint(c)).join('')).replace(/\+/g, '-').replace(/\//g, '_')
+      const marshal = (c) => {
+        if (typeof c.toJSON === 'function') {
+          return JSON.stringify(c)
+        }
+        return JSON.stringify({
+          id: c.id,
+          type: c.type,
+          authenticatorAttachment: c.authenticatorAttachment,
+          rawId: base64url(c.rawId),
+          response: {
+            authenticatorData: base64url(c.response.authenticatorData),
+            clientDataJSON: base64url(c.response.clientDataJSON),
+            signature: base64url(c.response.signature),
+            userHandle: base64url(c.response.userHandle),
+          }
+        })
+      }
+
+      const login = () =>
         navigator.credentials.get({ publicKey })
-          .then(credential =>
-            fetch({{ .LoginURL }}, {
+          .then(c =>
+            fetch(loginURL, {
               method: "POST",
               headers: {
                 'Content-Type': 'application/json',
                 'X-Session-Id': sessionID,
               },
-              body: JSON.stringify(credential),
+              body: marshal(c),
             })
           )
           .then((res) => {
             if (res.ok) {
-              window.location.href = "{{ .RedirectURL }}"
+              window.location.href = redirectURL
             } else {
               return res.text()
             }
           })
-          .then((res) => {
-            document.querySelector('pre').textContent = res
-          })
-          .catch(console.error)
+
+      window.addEventListener('load', () => {
+        login().catch(() => {
+          const button = document.querySelector('button')
+          button.addEventListener('click', () =>
+            login()
+              .then(res => { if (res) throw new Error(res) })
+              .catch(err => {
+                document.querySelector('pre').textContent = err
+              })
+            )
+          button.style.display = 'initial'
+        })
       })
     </script>
   </body>
