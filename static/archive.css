@@ -293,6 +293,10 @@ details summary {
   hyphens: auto;
 }
 
+.book p .n {
+  hyphens: manual;
+}
+
 .poem {
   text-align: left;
   text-indent: 2rem each-line hanging;
