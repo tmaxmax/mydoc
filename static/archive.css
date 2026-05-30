@@ -278,6 +278,13 @@ details summary {
   outline: 2px solid var(--text);
 }
 
+.diarytime {
+  text-align: center;
+  width: fit-content;
+  margin-left: auto;
+  font-style: italic;
+}
+
 :root {
   color-scheme: light dark;
 
