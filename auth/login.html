@@ -10,7 +10,7 @@
     <pre></pre>
     <button type="button" style="display: none; padding: 1em">Login</button>
     <script>
-      const { publicKey, sessionID, redirectURL, loginURL } = {{ . }}
+      const { publicKey, sessionID, redirectURL } = {{ . }}
 
       const base64url = (b) => btoa(Array.from(new Uint8Array(b), c => String.fromCodePoint(c)).join('')).replace(/\+/g, '-').replace(/\//g, '_')
       const marshal = (c) => {
@@ -34,7 +34,7 @@
       const login = () =>
         navigator.credentials.get({ publicKey })
           .then(c =>
-            fetch(loginURL, {
+            fetch('/auth/login', {
               method: "POST",
               headers: {
                 'Content-Type': 'application/json',

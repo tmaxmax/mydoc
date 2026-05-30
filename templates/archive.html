@@ -2,7 +2,7 @@
 <html $if(lang)$lang="$lang$"$else$lang="en"$endif$>
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=initial-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>$title$</title>
     $for(css)$
     <link rel="stylesheet" href="$css$" />
@@ -13,18 +13,29 @@
     <noscript>
       <link rel="stylesheet" href="static/archive-noscript.css" />
     </noscript>
+    $header-includes$
   </head>
   <body>
-    <fieldset id="dark-mode">
-      <legend>Theme preference</legend>
-      <input type="radio" id="dark-self" name="theme" value="self" checked />
-      <label for="dark-self"><span class="light">Light</span><span class="dark">Dark</span></label>
-      <input type="radio" id="dark-system" name="theme" value="system" />
-      <label for="dark-system"><span>System default</label>
-      <input type="radio" id="dark-other" name="theme" value="other" />
-      <label for="dark-other"><span class="light">Light</span><span class="dark">Dark</span></label>
-    </fieldset>
+    $for(include-before)$
+    $include-before$
+    $endfor$
+    <nav data-share-link-root="prepend">
+      <fieldset id="dark-mode">
+        <legend>Theme preference</legend>
+        <input type="radio" id="dark-self" name="theme" value="self" checked />
+        <label for="dark-self"><span class="light">Light</span><span class="dark">Dark</span></label>
+        <input type="radio" id="dark-system" name="theme" value="system" />
+        <label for="dark-system"><span>System default</label>
+        <input type="radio" id="dark-other" name="theme" value="other" />
+        <label for="dark-other"><span class="light">Light</span><span class="dark">Dark</span></label>
+      </fieldset>
+    </nav>
+    <main>
 $body$
+    </main>
     <script src="static/archive.js"></script>
+    $for(include-after)$
+    $include-after$
+    $endfor$
   </body>
 </html>

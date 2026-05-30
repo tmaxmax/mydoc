@@ -47,6 +47,6 @@ For working on the HTML output run:
 $ node serve.js path/to/sample.md
 ```
 
-This opens a local server which serves the rendered `sample.md` and a file watcher that automatically rerenders and reloads the page when changes are made.
+This opens a local server which serves the rendered `sample.md` and a file watcher that automatically rerenders and reloads the page when changes are made. You may also want to run `./auth/dev.sh` if working with link sharing.
 
 [1]: https://archive.quateo.com/grid/rigorous.html

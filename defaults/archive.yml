@@ -8,3 +8,5 @@ css:
 filters:
   - filters/archive.js
   - filters/hyphens.js
+include-after-body:
+  - templates/share.html

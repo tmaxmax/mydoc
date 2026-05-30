@@ -1,9 +1,10 @@
-import { createServer } from "http";
+import { createServer, request } from "http";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import chokidar from "chokidar";
 import { WebSocketServer } from "ws";
 import { gzip as gzipCb } from "zlib";
+import { createReadStream } from "fs";
 
 function toMB(n) {
   return (n / (1024 * 1024)).toFixed(3);
@@ -54,6 +55,36 @@ if (!html) {
 
 const server = createServer(async (req, res) => {
   try {
+    if (req.url === "/me/share.js") {
+      const file = createReadStream("static/share.js");
+      file.on("error", () => res.writeHead(404));
+      res.writeHead(200, { "content-type": "application/javascript" });
+      file.pipe(res);
+
+      return;
+    }
+
+    if (req.url.startsWith("/auth/")) {
+      const target = new URL(req.url.replace(/^\/auth/, ""), "http://localhost:9000");
+      const proxyRes = await new Promise((resolve, reject) => {
+        const proxyReq = request(
+          target,
+          {
+            method: req.method,
+            headers: { ...req.headers, host: target.host },
+          },
+          resolve,
+        );
+        proxyReq.on("error", reject);
+        req.pipe(proxyReq);
+      });
+
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res);
+
+      return;
+    }
+
     if (!html) {
       throw new Error("build output not ready");
     }

@@ -1,0 +1,7 @@
+<script>
+  if (window.location.pathname.startsWith("/me/") && document.querySelector("[data-share-link-root]")) {
+    const script = document.createElement("script");
+    script.src = "/me/share.js";
+    document.body.append(script);
+  }
+</script>
