@@ -9,13 +9,11 @@ import (
 	"embed"
 	_ "embed"
 	"encoding/base64"
-	"encoding/gob"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -29,6 +27,8 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 )
+
+const loginSessionCookieName = "session"
 
 func main() {
 	if err := run(); err != nil {
@@ -52,6 +52,7 @@ func run() error {
 	}
 
 	registerAddr := os.Getenv("REGISTER_ADDR")
+	loginURL := os.Getenv("LOGIN_URL")
 
 	timeouts := webauthn.TimeoutConfig{
 		Enforce:    true,
@@ -72,47 +73,9 @@ func run() error {
 		return fmt.Errorf("create Webauthn: %w", err)
 	}
 
-	userFile := os.Getenv("USER_FILE")
-	userMu := sync.Mutex{}
-
-	user, err := readUserData(userFile)
+	user, err := newUserHandler(os.Getenv("USER_FILE"))
 	if err != nil {
 		return err
-	}
-
-	loadUser := func(_, _ []byte) (webauthn.User, error) {
-		userMu.Lock()
-		defer userMu.Unlock()
-		return user, nil
-	}
-
-	updateUser := func(cred webauthn.Credential) error {
-		userMu.Lock()
-		defer userMu.Unlock()
-
-		i := slices.IndexFunc(user.Credentials, func(c webauthn.Credential) bool {
-			return bytes.Equal(c.ID, cred.ID)
-		})
-		if i >= 0 {
-			user.Credentials[i] = cred
-		} else {
-			user.Credentials = append(user.Credentials, cred)
-		}
-
-		data, err := json.MarshalIndent(webAuthnUserData{
-			ID:          user.IDString(),
-			Name:        user.Name,
-			Credentials: user.Credentials,
-		}, "", "  ")
-		if err != nil {
-			return fmt.Errorf("marshal user: %w", err)
-		}
-
-		if err := os.WriteFile(userFile, data, 0o666); err != nil {
-			return fmt.Errorf("write user file: %w", err)
-		}
-
-		return nil
 	}
 
 	tmpl, err := template.ParseFS(templateFiles, "*.html")
@@ -120,24 +83,26 @@ func run() error {
 		return fmt.Errorf("parse templates: %w", err)
 	}
 
-	sess := sessions{m: map[string]*webauthn.SessionData{}}
+	sess := sessions{m: map[string]sessionEntry{}}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /register", func(w http.ResponseWriter, r *http.Request) {
+		u := user.get()
+
 		opts := []webauthn.RegistrationOption{
 			webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementRequired),
-			webauthn.WithExclusions(webauthn.Credentials(user.WebAuthnCredentials()).CredentialDescriptors()),
+			webauthn.WithExclusions(webauthn.Credentials(u.WebAuthnCredentials()).CredentialDescriptors()),
 			webauthn.WithExtensions(map[string]any{"credProps": true}),
 		}
 
-		creation, session, err := wa.BeginRegistration(user, opts...)
+		creation, session, err := wa.BeginRegistration(u, opts...)
 		if err != nil {
 			slog.Error("begin registration", "err", err)
 			respond(w, http.StatusInternalServerError)
 			return
 		}
 
-		slog.Info("session", "exp", session.Expires)
+		sessionID := sess.save(session)
 
 		var resp struct {
 			SessionID    string
@@ -145,17 +110,23 @@ func run() error {
 			PublicKey    protocol.PublicKeyCredentialCreationOptions
 		}
 
-		resp.SessionID = sess.save(session)
+		resp.SessionID = sessionID
 		resp.RegisterAddr = registerAddr
 		resp.PublicKey = creation.Response
 
 		if err := tmpl.ExecuteTemplate(w, "register", resp); err != nil {
 			slog.Error("failed to execute register template", "err", err, "session", sessionID)
+			sess.delete(sessionID)
 			return
 		}
 	})
 
 	registerSrv := newServer(registerAddr, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			respond(w, http.StatusMethodNotAllowed)
+			return
+		}
+
 		sessionID := r.URL.Query().Get("session")
 
 		session := sess.get(sessionID)
@@ -164,15 +135,16 @@ func run() error {
 			http.NotFound(w, r)
 			return
 		}
+		defer sess.delete(sessionID)
 
-		credential, err := wa.FinishRegistration(user, *session, r)
+		credential, err := wa.FinishRegistration(user.get(), *session, r)
 		if err != nil {
 			slog.Error("finish registration", "err", err, "session", sessionID)
 			respond(w, http.StatusInternalServerError)
 			return
 		}
 
-		if err := updateUser(*credential); err != nil {
+		if err := user.update(*credential); err != nil {
 			slog.Error("update user", "err", err, "session", sessionID)
 			respond(w, http.StatusInternalServerError)
 			return
@@ -192,11 +164,13 @@ func run() error {
 		var resp struct {
 			SessionID   string
 			RedirectURL string
+			LoginURL    string
 			PublicKey   protocol.PublicKeyCredentialRequestOptions
 		}
 
 		resp.SessionID = sess.save(session)
 		resp.PublicKey = assertion.Response
+		resp.LoginURL = loginURL
 
 		resp.RedirectURL = r.Header.Get("X-Redirect-Url")
 		if resp.RedirectURL == "" {
@@ -204,6 +178,7 @@ func run() error {
 		}
 
 		if err := tmpl.ExecuteTemplate(w, "login", resp); err != nil {
+			sess.delete(resp.SessionID)
 			slog.Error("failed to execute register template", "err", err)
 			return
 		}
@@ -217,15 +192,16 @@ func run() error {
 			http.NotFound(w, r)
 			return
 		}
+		defer sess.delete(sessionID)
 
-		_, cred, err := wa.FinishPasskeyLogin(loadUser, *session, r)
+		_, cred, err := wa.FinishPasskeyLogin(user.load, *session, r)
 		if err != nil {
 			slog.Error("finish login", "err", err, "session", sessionID)
 			respond(w, http.StatusInternalServerError)
 			return
 		}
 
-		if err := updateUser(*cred); err != nil {
+		if err := user.update(*cred); err != nil {
 			slog.Error("update user", "err", err, "session", sessionID)
 			respond(w, http.StatusInternalServerError)
 			return
@@ -233,7 +209,7 @@ func run() error {
 
 		age := time.Hour * 24 * 365
 
-		payload, err := loginSession{ID: sessionID, Exp: time.Now().Add(age)}.Encode(secretKey)
+		payload, err := loginSession{Exp: time.Now().Add(age)}.Encode(secretKey)
 		if err != nil {
 			slog.Error("encode payload", "err", err, "session", sessionID)
 			respond(w, http.StatusInternalServerError)
@@ -241,8 +217,9 @@ func run() error {
 		}
 
 		http.SetCookie(w, &http.Cookie{
-			Name:     "session",
+			Name:     loginSessionCookieName,
 			Value:    payload,
+			Path:     "/",
 			MaxAge:   int(age),
 			Secure:   true,
 			HttpOnly: true,
@@ -253,22 +230,19 @@ func run() error {
 	})
 
 	mux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
-		c, _ := r.Cookie("session")
+		c, _ := r.Cookie(loginSessionCookieName)
 		if c == nil {
-			slog.Info("missing cookie")
 			respond(w, http.StatusUnauthorized)
 			return
 		}
 
 		l, err := decodeLoginSession(c.Value, secretKey)
 		if err != nil {
-			slog.Info("decode login session", "err", err)
 			respond(w, http.StatusUnauthorized)
 			return
 		}
 
 		if time.Now().After(l.Exp) {
-			slog.Info("session expired", "session", l.ID)
 			respond(w, http.StatusUnauthorized)
 			return
 		}
@@ -321,69 +295,130 @@ func (u webAuthnUser) WebAuthnName() string                       { return u.Nam
 func (u webAuthnUser) WebAuthnDisplayName() string                { return u.Name }
 func (u webAuthnUser) WebAuthnCredentials() []webauthn.Credential { return u.Credentials }
 
-func (u webAuthnUser) IDString() string { return hex.EncodeToString(u.ID) }
+type userHandler struct {
+	user webAuthnUser
+	mu   sync.Mutex
+	file string
+}
 
-func readUserData(file string) (webAuthnUser, error) {
+func newUserHandler(file string) (*userHandler, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return webAuthnUser{}, fmt.Errorf("read user file: %w", err)
+		return nil, fmt.Errorf("read user file: %w", err)
 	}
 
 	var userData webAuthnUserData
 
 	if err := json.Unmarshal(data, &userData); err != nil {
-		return webAuthnUser{}, fmt.Errorf("parse user data: %w", err)
+		return nil, fmt.Errorf("parse user data: %w", err)
 	}
 
 	id, err := hex.DecodeString(userData.ID)
 	if err != nil {
-		return webAuthnUser{}, fmt.Errorf("parse user ID: %w", err)
+		return nil, fmt.Errorf("parse user ID: %w", err)
 	}
 
 	if want, got := 64, len(id); want != got {
-		return webAuthnUser{}, fmt.Errorf("expected %d bytes ID, got %d", want, got)
+		return nil, fmt.Errorf("expected %d bytes ID, got %d", want, got)
 	}
 
-	return webAuthnUser{ID: id, Name: userData.Name, Credentials: userData.Credentials}, nil
+	return &userHandler{
+		user: webAuthnUser{ID: id, Name: userData.Name, Credentials: userData.Credentials},
+		file: file,
+	}, nil
+}
+
+func (u *userHandler) get() webauthn.User {
+	u.mu.Lock()
+	user := u.user
+	u.mu.Unlock()
+	return user
+}
+
+func (u *userHandler) load(_, _ []byte) (webauthn.User, error) {
+	return u.get(), nil
+}
+
+func (u *userHandler) update(cred webauthn.Credential) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	creds := slices.Clone(u.user.Credentials)
+
+	i := slices.IndexFunc(creds, func(c webauthn.Credential) bool {
+		return bytes.Equal(c.ID, cred.ID)
+	})
+	if i >= 0 {
+		creds[i] = cred
+	} else {
+		creds = append(creds, cred)
+	}
+
+	data, err := json.MarshalIndent(webAuthnUserData{
+		ID:          hex.EncodeToString(u.user.ID),
+		Name:        u.user.Name,
+		Credentials: creds,
+	}, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal user: %w", err)
+	}
+
+	if err := os.WriteFile(u.file, data, 0o600); err != nil {
+		return fmt.Errorf("write user file: %w", err)
+	}
+
+	u.user.Credentials = creds
+
+	return nil
 }
 
 //go:embed *.html
 var templateFiles embed.FS
 
-func sessionID() string {
-	var raw [16]byte
-	rand.Read(raw[:])
-
-	return hex.EncodeToString(raw[:])
-}
-
 type sessions struct {
 	mu sync.Mutex
-	m  map[string]*webauthn.SessionData
+	m  map[string]sessionEntry
+}
+
+type sessionEntry struct {
+	data *webauthn.SessionData
+	exp  *time.Timer
 }
 
 func (s *sessions) save(session *webauthn.SessionData) string {
-	id := sessionID()
+	var raw [16]byte
+	rand.Read(raw[:])
+
+	id := hex.EncodeToString(raw[:])
 
 	s.mu.Lock()
-	s.m[id] = session
+	s.m[id] = sessionEntry{
+		data: session,
+		exp:  time.AfterFunc(time.Until(session.Expires), func() { s.delete(id) }),
+	}
 	s.mu.Unlock()
-
-	time.AfterFunc(time.Until(session.Expires), func() {
-		s.mu.Lock()
-		delete(s.m, id)
-		s.mu.Unlock()
-	})
 
 	return id
 }
 
 func (s *sessions) get(id string) *webauthn.SessionData {
 	s.mu.Lock()
-	session := s.m[id]
+	session, ok := s.m[id]
 	s.mu.Unlock()
 
-	return session
+	if ok {
+		return session.data
+	}
+	return nil
+}
+
+func (s *sessions) delete(id string) {
+	s.mu.Lock()
+	if sess, ok := s.m[id]; ok {
+		sess.exp.Stop()
+		delete(s.m, id)
+	}
+	s.mu.Unlock()
 }
 
 func newServer(addr string, handler http.Handler) *http.Server {
@@ -399,8 +434,7 @@ func newServer(addr string, handler http.Handler) *http.Server {
 }
 
 type loginSession struct {
-	ID  string
-	Exp time.Time
+	Exp time.Time `json:"exp"`
 }
 
 func decodeLoginSession(payload string, secretKey []byte) (loginSession, error) {
@@ -425,7 +459,7 @@ func decodeLoginSession(payload string, secretKey []byte) (loginSession, error) 
 	}
 
 	var l loginSession
-	if err := gob.NewDecoder(bytes.NewReader(data)).Decode(&l); err != nil {
+	if err := json.Unmarshal(data, &l); err != nil {
 		return loginSession{}, fmt.Errorf("malformed input: %w", err)
 	}
 
@@ -433,14 +467,17 @@ func decodeLoginSession(payload string, secretKey []byte) (loginSession, error) 
 }
 
 func (l loginSession) Encode(secretKey []byte) (string, error) {
-	b, h := &bytes.Buffer{}, hmac.New(sha256.New, secretKey)
-	if err := gob.NewEncoder(io.MultiWriter(b, h)).Encode(l); err != nil {
+	data, err := json.Marshal(l)
+	if err != nil {
 		return "", err
 	}
 
+	h := hmac.New(sha256.New, secretKey)
+	h.Write(data)
+
 	enc := base64.URLEncoding
 
-	return enc.EncodeToString(b.Bytes()) + "." + enc.EncodeToString(h.Sum(nil)), nil
+	return enc.EncodeToString(data) + "." + enc.EncodeToString(h.Sum(nil)), nil
 }
 
 func respond(w http.ResponseWriter, code int) {

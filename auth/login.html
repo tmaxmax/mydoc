@@ -16,7 +16,7 @@
       window.addEventListener('load', (e) => {
         navigator.credentials.get({ publicKey })
           .then(credential =>
-            fetch("/login", {
+            fetch({{ .LoginURL }}, {
               method: "POST",
               headers: {
                 'Content-Type': 'application/json',
