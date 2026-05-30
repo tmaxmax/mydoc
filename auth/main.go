@@ -10,11 +10,13 @@ import (
 	_ "embed"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"html/template"
 	"log/slog"
+	mrand "math/rand/v2"
 	"net/http"
 	"net/url"
 	"os"
@@ -107,12 +109,12 @@ func run() error {
 		var resp struct {
 			SessionID    string
 			RegisterAddr string
-			PublicKey    protocol.PublicKeyCredentialCreationOptions
+			PublicKey    template.JS
 		}
 
 		resp.SessionID = sessionID
 		resp.RegisterAddr = registerAddr
-		resp.PublicKey = creation.Response
+		resp.PublicKey = marshalProtocol(creation.Response)
 
 		if err := tmpl.ExecuteTemplate(w, "register", resp); err != nil {
 			slog.Error("failed to execute register template", "err", err, "session", sessionID)
@@ -165,11 +167,11 @@ func run() error {
 			SessionID   string
 			RedirectURL string
 			LoginURL    string
-			PublicKey   protocol.PublicKeyCredentialRequestOptions
+			PublicKey   template.JS
 		}
 
 		resp.SessionID = sess.save(session)
-		resp.PublicKey = assertion.Response
+		resp.PublicKey = marshalProtocol(assertion.Response)
 		resp.LoginURL = loginURL
 
 		resp.RedirectURL = r.Header.Get("X-Redirect-Url")
@@ -354,11 +356,11 @@ func (u *userHandler) update(cred webauthn.Credential) error {
 		creds = append(creds, cred)
 	}
 
-	data, err := json.MarshalIndent(webAuthnUserData{
+	data, err := json.Marshal(webAuthnUserData{
 		ID:          hex.EncodeToString(u.user.ID),
 		Name:        u.user.Name,
 		Credentials: creds,
-	}, "", "  ")
+	}, jsontext.WithIndent("  "))
 	if err != nil {
 		return fmt.Errorf("marshal user: %w", err)
 	}
@@ -482,4 +484,21 @@ func (l loginSession) Encode(secretKey []byte) (string, error) {
 
 func respond(w http.ResponseWriter, code int) {
 	http.Error(w, http.StatusText(code), code)
+}
+
+func marshalProtocol(v any) template.JS {
+	marker := fmt.Sprintf("%%%x%%", mrand.Uint64())
+	enc := json.MarshalFunc(func(p protocol.URLEncodedBase64) ([]byte, error) {
+		x := make([]int, len(p))
+		for i := range p {
+			x[i] = int(p[i])
+		}
+		v, err := json.Marshal(x)
+		return slices.Concat([]byte(`"`+marker), v, []byte(marker+`"`)), err
+	})
+	b, _ := json.Marshal(v, json.WithMarshalers(enc))
+	return template.JS(strings.NewReplacer(
+		fmt.Sprintf("\"%s[", marker), "new Uint8Array([",
+		fmt.Sprintf("]%s\"", marker), "])",
+	).Replace(string(b)))
 }

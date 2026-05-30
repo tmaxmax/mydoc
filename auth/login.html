@@ -9,9 +9,8 @@
   <body>
     <pre></pre>
     <script>
-      const sessionID = {{ .SessionID }};
-      const publicKey = {{ .PublicKey }};
-      publicKey.challenge = Uint8Array.fromBase64(publicKey.challenge, { alphabet: "base64url" })
+      const sessionID = {{ .SessionID }}
+      const publicKey = {{ .PublicKey }}
 
       window.addEventListener('load', (e) => {
         navigator.credentials.get({ publicKey })

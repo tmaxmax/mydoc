@@ -10,4 +10,4 @@ export ADDR="localhost:9000"
 export REGISTER_ADDR="localhost:9001"
 export LOGIN_URL="/login"
 
-go run "$PROJECT_ROOT/auth"
+GOEXPERIMENT=jsonv2 go run "$PROJECT_ROOT/auth"

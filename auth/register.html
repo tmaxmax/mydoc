@@ -9,13 +9,10 @@
   <body>
     <pre></pre>
     <script>
-      const sessionID = {{ .SessionID }};
-      const registerAddr = {{ .RegisterAddr }};
-      const publicKey = {{ .PublicKey }};
+      const sessionID = {{ .SessionID }}
+      const registerAddr = {{ .RegisterAddr }}
+      const publicKey = {{ .PublicKey }}
       const out = document.querySelector('pre')
-
-      publicKey.user.id = Uint8Array.fromBase64(publicKey.user.id, { alphabet: "base64url" })
-      publicKey.challenge = Uint8Array.fromBase64(publicKey.challenge, { alphabet: "base64url" })
 
       window.addEventListener('load', () => {
         navigator.credentials.create({ publicKey })
