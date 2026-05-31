@@ -77,6 +77,4 @@ form.addEventListener("submit", async (e) => {
 });
 
 const target = /** @type {HTMLElement} */ (document.querySelector("[data-share-link-root]"));
-if (target) {
-  target[target.dataset.shareLinkRoot]?.(form);
-}
+target[target.dataset.shareLinkRoot || "append"](form);
