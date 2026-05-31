@@ -552,7 +552,7 @@ type link struct {
 }
 
 func (l *link) match(u *url.URL, now time.Time) bool {
-	if l == nil || l.Exp.Before(now) {
+	if l == nil || l.Exp.Before(now) || u == nil {
 		return false
 	}
 	p := path.Clean(u.Path)
