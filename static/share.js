@@ -3,7 +3,7 @@ function createForm() {
   t.innerHTML = /* html */ `
     <form id="share-link" action="/auth/share" method="post">
       <input type="checkbox" id="share-link-parent" name="parent" />
-      <label for="share-link-parent">Parent</label>
+      <label for="share-link-parent"><span>Parent</span></label>
       <button type="submit"><span>Share</span></button>
     </form>
   `;
