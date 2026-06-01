@@ -279,7 +279,7 @@ details + details {
   background: transparent;
   height: 100%;
   border: none;
-  padding: 0 0.7rem 0 0.2rem;
+  padding: 0 0.7rem 0 0.3275rem;
 }
 
 #share-link.success button {
