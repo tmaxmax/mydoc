@@ -36,8 +36,7 @@ html {
   font-family: "EB Garamond", serif;
   font-optical-sizing: auto;
   font-weight: 450;
-  font-size: clamp(20px, calc(18px + 0.5vmin), 22px);
-  line-height: clamp(1.45rem, calc(1.1rem + 1.35vmin), 1.6rem);
+  font-size: clamp(20px, calc(18px + 0.5vw), 22px);
   -webkit-text-size-adjust: 100%;
   background-color: var(--bg);
   color: var(--text);
@@ -49,6 +48,7 @@ body {
   width: 100%;
   min-width: 100%;
   -webkit-font-smoothing: antialiased;
+  line-height: clamp(1.45em, calc(1.1em + 1.35vw), 1.6em);
 }
 
 main {
@@ -279,7 +279,7 @@ details + details {
   background: transparent;
   height: 100%;
   border: none;
-  padding-right: 0.7rem;
+  padding: 0 0.7rem 0 0.2rem;
 }
 
 #share-link.success button {
