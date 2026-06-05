@@ -187,6 +187,10 @@ code {
   padding-left: var(--offset);
 }
 
+.katex :is(.text, .textrm) {
+  font-family: "EB Garamond", KaTeX_Main, serif;
+}
+
 .no-wrap {
   white-space: nowrap;
 }
