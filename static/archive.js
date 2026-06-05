@@ -23,8 +23,9 @@ const o = new ResizeObserver((entries) => {
   for (const entry of entries) {
     const e = /** @type {HTMLElement} **/ (entry.target);
     const { math, thresh, base } = widths.get(e);
+    const rem = getREM();
     const { inlineSize } = entry.borderBoxSize[0];
-    const delta = inlineSize - math;
+    const delta = inlineSize / rem - math;
 
     if (e.classList.contains("overflow") && delta > thresh) {
       e.classList.remove("overflow");
@@ -35,7 +36,7 @@ const o = new ResizeObserver((entries) => {
     if (e.classList.contains("overflow")) {
       // Overflow sets left alignment so the script
       // repositions the equation to be centered again.
-      e.style.setProperty("--offset", (inlineSize - base) / 2 + "px");
+      e.style.setProperty("--offset", (inlineSize / rem - base) / 2 + "rem");
     }
   }
 });
@@ -105,21 +106,35 @@ function mathSize(bases, tag) {
   return ret;
 }
 
+function getREM() {
+  return Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+}
+
+const rem = getREM();
 for (const e of /** @type {NodeListOf<HTMLElement>} **/ (document.querySelectorAll(".katex-display:has(.tag)"))) {
   const container = e.getBoundingClientRect();
   const bases = /** @type {HTMLElement[]} */ ([...e.querySelectorAll(".katex-html > .base")]);
   const base = bases.reduce((m, e) => union(m, e.getBoundingClientRect()), EMPTY);
   const tag = e.querySelector(".tag .mord.text").getBoundingClientRect();
   const math = mathSize(bases, tag);
+  const width = {
+    thresh: tag.width / rem,
+    math: (math.right - container.left) / rem,
+    base: (base.right - base.left) / rem,
+  };
+  const spaceForTag = Math.max(base.right - math.right, 0) / rem;
 
-  const spaceForTag = Math.max(base.right - math.right, 0);
-  if (spaceForTag >= tag.width) {
+  if (spaceForTag >= width.thresh) {
     continue;
   }
 
-  e.style.setProperty("--tag-size", tag.width - spaceForTag + "px");
-  widths.set(e, { thresh: tag.width, math: math.right - container.left, base: base.right - base.left });
+  e.style.setProperty("--tag-size", width.thresh - spaceForTag + "rem");
+  if (Math.max(width.base - spaceForTag, width.math) + width.thresh >= 650 / 24) {
+    e.classList.add("overflow");
+    continue;
+  }
 
+  widths.set(e, width);
   o.observe(e);
 }
 

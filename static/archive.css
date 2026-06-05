@@ -8,7 +8,6 @@
   font-family: "EB Garamond";
   font-style: normal;
   font-weight: 400 800;
-  font-display: swap;
   src: url("./eb-garamond.woff2") format("woff2-variations");
 }
 
@@ -16,14 +15,12 @@
   font-family: "EB Garamond";
   font-style: italic;
   font-weight: 400 800;
-  font-display: swap;
   src: url("./eb-garamond-italic.woff2") format("woff2-variations");
 }
 
 @font-face {
   font-family: "Monaspace";
   src: url("./monaspace.woff2") format("woff2-variations");
-  font-display: swap;
   font-weight: 200 800;
   font-style: oblique -11deg 0deg;
 }
@@ -35,9 +32,10 @@
 html {
   font-family: "EB Garamond", serif;
   font-optical-sizing: auto;
-  font-weight: 450;
-  font-size: clamp(20px, calc(18px + 0.5vw), 22px);
+  font-weight: 400;
+  font-size: clamp(125%, calc(125% + 4 * (100vw - 390px) / 320), 150%);
   -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: subpixel-antialiased;
   background-color: var(--bg);
   color: var(--text);
 }
@@ -46,26 +44,42 @@ body {
   padding: calc(env(safe-area-inset-top) + 1rem) calc(env(safe-area-inset-right) + 1rem)
     calc(env(safe-area-inset-bottom) + 2rem) calc(env(safe-area-inset-left) + 1rem);
   width: 100%;
-  min-width: 100%;
-  -webkit-font-smoothing: antialiased;
-  line-height: clamp(1.45em, calc(1.1em + 1.35vw), 1.6em);
+  max-width: 100%;
+  line-height: 1.45;
 }
 
 main {
   width: 100%;
-  max-width: 70ch;
   margin: auto;
 }
 
 nav {
-  max-width: calc(70ch + 6.8rem);
+  max-width: calc(650px + 6.8rem);
   display: flex;
   gap: 0.7rem;
   justify-content: flex-end;
   margin: 0 auto;
   position: sticky;
-  top: 1.2rem;
+  top: 1rem;
   z-index: 1;
+}
+
+main > * {
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+main > pre:has(> code) {
+  min-width: min(calc(100vw - 2.66rem - env(safe-area-inset-left) - env(safe-area-inset-right)), 650px);
+  width: min(calc(100vw - 2.66rem - env(safe-area-inset-left) - env(safe-area-inset-right)), 800px);
+  max-width: fit-content;
+}
+
+main > p:has(.katex-display) {
+  min-width: min(calc(100vw - 2.66rem - env(safe-area-inset-left) - env(safe-area-inset-right)), 650px);
+  width: fit-content;
+  max-width: calc(100vw - 2.66rem - env(safe-area-inset-left) - env(safe-area-inset-right));
 }
 
 img,
@@ -94,17 +108,18 @@ h6 {
   overflow-wrap: break-word;
 }
 
-main h1:first-of-type {
+main h1:first-of-type,
+main header:first-of-type {
   margin-top: 0.5rem;
 }
 
 p {
   text-wrap: pretty;
-  margin: 1.2rem 0;
+  margin: 1.2rem auto;
 }
 
 blockquote {
-  margin: 1rem 0;
+  margin: 1rem auto;
 }
 
 h1,
@@ -114,44 +129,35 @@ h4,
 h5,
 h6 {
   text-wrap: balance;
-  line-height: calc(1em + 0.4rem);
+  line-height: calc(1em + 0.45rem);
   margin: 1.2rem 0;
   font-weight: 600;
 }
 
 h1 {
-  margin: 2.2rem 0;
-  font-size: clamp(2em, calc(0.9em + 5.7vw), 3em);
+  margin: 2.2rem auto;
+  font-size: 2.2em;
 }
 
 h2 {
-  margin: 1.8rem 0;
-  font-size: clamp(1.625em, calc(0.9em + 3.7vw), 2.25em);
+  margin: 1.8rem auto;
+  font-size: 1.8em;
 }
 
 h3 {
-  margin: 1.4rem 0;
-  font-size: clamp(1.375em, calc(0.7em + 2.9vw), 1.75em);
+  margin: 1.4rem auto;
+  font-size: 1.4em;
 }
 
 h4 {
-  font-size: 1.125em;
+  font-size: 1.1em;
 }
 
 code {
-  font-family: "Monaspace", ui-monospace, monospace;
-  font-weight: 480;
-  font-size: 0.8em;
-  font-feature-settings:
-    "calt" 1,
-    "liga" 1,
-    "ss01" 1,
-    "ss02" 1,
-    "ss03" 1,
-    "ss04" 1,
-    "ss06" 1,
-    "ss09" 1,
-    "cv32" 1;
+  font-family: "Monaspace", "Monaspace", ui-monospace, monospace;
+  font-size: 0.778em;
+  font-weight: 360;
+  font-feature-settings: "calt" 1;
 }
 
 .katex-display {
@@ -206,6 +212,7 @@ hr {
 
 a {
   color: inherit;
+  text-decoration: underline dotted 2px;
 }
 
 a:visited {
@@ -214,12 +221,12 @@ a:visited {
 }
 
 header {
-  margin: 2rem 0;
+  margin: 2rem auto;
 }
 
 header h1,
 header p {
-  margin: 0.5rem 0;
+  margin: 0.5rem auto;
 }
 
 details summary {
@@ -407,8 +414,6 @@ details + details {
 .book,
 .poem,
 .poem-indent {
-  --indent: min(calc(0.7rem + 2.75vw), 2rem);
-  max-width: 64ch;
   margin: 0 auto;
 }
 
@@ -421,7 +426,7 @@ details + details {
   text-indent: var(--indent) each-line;
 }
 
-@media (min-width: 45.5em) {
+@media (min-width: 475px) {
   .book {
     text-align: justify;
     text-justify: inter-word;
@@ -454,8 +459,10 @@ details + details {
 :root {
   color-scheme: light dark;
 
-  --bg: light-dark(#f7f3ea, black);
-  --text: light-dark(#26231f, #e0e0e0);
+  --indent: min(calc(0.7rem + 2.75vw), 2rem);
+
+  --bg: light-dark(#fffff8, black);
+  --text: light-dark(#111, #ddd);
   --visited-a: light-dark(gray, lightgray);
   --blockquote-bg: light-dark(whitesmoke, #444444);
   --blockquote-border: light-dark(lightgray, #888888);
