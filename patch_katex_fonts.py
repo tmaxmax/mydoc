@@ -1,7 +1,9 @@
 from io import BytesIO
 from pathlib import Path
 import subprocess
-import tempfile
+import os
+import json
+import re
 
 import uharfbuzz as hb
 from fontTools import subset
@@ -11,7 +13,6 @@ from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.pens.transformPen import TransformPen
 
-# ---------- Codepoint sets ----------
 LATIN_BASE = list(range(0x41, 0x5B)) + list(range(0x61, 0x7B))  # A-Z + a-z
 LATIN_EXTRA = [0x03C0, 0x03BC]  # π, μ
 MATH_CHARS = LATIN_BASE + LATIN_EXTRA
@@ -21,14 +22,6 @@ PRIMES = [0x0027, 0x2032]
 MAIN_CHARS = DIGITS + PRIMES
 
 
-# ---------- Generic font helpers ----------
-def clone_font(font: TTFont) -> TTFont:
-    buf = BytesIO()
-    font.save(buf)
-    buf.seek(0)
-    return TTFont(buf)
-
-
 def hb_font_from_ttfont(font: TTFont) -> hb.Font:
     buf = BytesIO()
     font.save(buf)
@@ -36,17 +29,16 @@ def hb_font_from_ttfont(font: TTFont) -> hb.Font:
     return hb.Font(face)
 
 
-# ---------- Instantiation + feature baking ----------
 def instantiate_font(
-    src_font: TTFont,
+    font: TTFont,
     weight: int,
     feature_codepoints: list[int] | None = None,
     feature_tags: dict[str, int] | None = None,
 ) -> TTFont:
-    inst = instantiateVariableFont(src_font, {"wght": weight}, inplace=False)
+    instantiateVariableFont(font, {"wght": weight}, inplace=True)
 
     if feature_codepoints and feature_tags:
-        hb_font = hb_font_from_ttfont(inst)
+        hb_font = hb_font_from_ttfont(font)
         cp_to_glyph = {}
 
         for cp in feature_codepoints:
@@ -55,17 +47,14 @@ def instantiate_font(
             b.guess_segment_properties()
             hb.shape(hb_font, b, feature_tags)
             gid = b.glyph_infos[0].codepoint
-            cp_to_glyph[cp] = inst.getGlyphName(gid)
+            cp_to_glyph[cp] = font.getGlyphName(gid)
 
-        for sub in inst["cmap"].tables:
+        for sub in font["cmap"].tables:
             if sub.isUnicode():
                 for cp, gname in cp_to_glyph.items():
                     sub.cmap[cp] = gname
 
-    return inst
 
-
-# ---------- Geometry ----------
 def bounds(glyph_set, glyph_name):
     p = BoundsPen(glyph_set)
     glyph_set[glyph_name].draw(p)
@@ -100,10 +89,7 @@ def replace_glyph_and_hmtx(
     base["hmtx"][base_gname] = (new_adv, new_lsb)
 
 
-def patch_math_latin(base_font: TTFont, src_font: TTFont) -> TTFont:
-    base = clone_font(base_font)
-    src = src_font
-
+def patch_math_latin(base: TTFont, src: TTFont) -> None:
     base_cmap = base.getBestCmap()
     src_cmap = src.getBestCmap()
     base_gs = base.getGlyphSet()
@@ -121,13 +107,8 @@ def patch_math_latin(base_font: TTFont, src_font: TTFont) -> TTFont:
             continue
         replace_glyph_and_hmtx(base, src, base_cmap[cp], src_cmap[cp], scale)
 
-    return base
 
-
-def patch_main_digits_primes(base_font: TTFont, src_font: TTFont) -> TTFont:
-    base = clone_font(base_font)
-    src = src_font
-
+def patch_main_digits_primes(base: TTFont, src: TTFont) -> None:
     base_cmap = base.getBestCmap()
     src_cmap = src.getBestCmap()
     base_gs = base.getGlyphSet()
@@ -144,10 +125,8 @@ def patch_main_digits_primes(base_font: TTFont, src_font: TTFont) -> TTFont:
             continue
         replace_glyph_and_hmtx(base, src, base_cmap[cp], src_cmap[cp], scale)
 
-    return base
 
-
-def ots_sanitize_file(input_path: Path, output_path: Path) -> None:
+def ots_sanitize_file(input_path: Path) -> None:
     proc = subprocess.run(
         ["ots-sanitize", str(input_path)],
         capture_output=True,
@@ -155,68 +134,128 @@ def ots_sanitize_file(input_path: Path, output_path: Path) -> None:
     )
     if proc.returncode != 0:
         raise RuntimeError(f"OTS sanitize failed for {input_path}:\n{proc.stderr}")
-    output_path.write_bytes(input_path.read_bytes())
 
 
-def subset_to_woff2(font: TTFont, unicodes: list[int], output_path: Path) -> None:
-    out_font = clone_font(font)  # subset mutates font in place
+def save_font_in_place(font: TTFont, path: str) -> None:
+    p = Path(path)
+    font.flavor = "woff2"  # always write WOFF2
 
-    opts = subset.Options()
-    opts.flavor = "woff2"
-    opts.layout_features = ["*"]
+    tmp = p.with_suffix(".tmp.woff2")
+    font.save(str(tmp))
+    ots_sanitize_file(tmp)
+    os.replace(tmp, p)  # atomic replace
 
-    s = subset.Subsetter(options=opts)
-    s.populate(unicodes=unicodes)
-    s.subset(out_font)
 
-    with tempfile.TemporaryDirectory() as td:
-        tmp_out = Path(td) / "subset.woff2"
-        subset.save_font(out_font, str(tmp_out), opts)
-        ots_sanitize_file(tmp_out, output_path)
+def _glyph_bounds(font: TTFont, gname: str) -> tuple[float, float, float, float]:
+    gs = font.getGlyphSet()
+    pen = BoundsPen(gs)
+    gs[gname].draw(pen)
+    if pen.bounds is None:
+        return 0.0, 0.0, 0.0, 0.0
+    return pen.bounds  # xMin, yMin, xMax, yMax
 
-    subset.save_font(out_font, str(output_path), opts)
+
+def _clean(v: float, ndigits: int = 5) -> float:
+    x = round(float(v), ndigits)
+    return 0.0 if x == -0.0 else x
+
+
+def update_metrics(
+    metrics_map: dict[str, dict[str, list[float]]],
+    font: TTFont,
+    font_name: str,
+    codepoints: list[int],
+) -> None:
+    """
+    Mutates metrics_map in place for metrics_map[font_name][str(cp)].
+
+    Tuple format: [depth, height, italic, skew, width]
+    - depth/height/width are recomputed from font outlines + hmtx
+    - italic/skew are preserved from existing metrics if present, else 0
+    """
+    cmap = font.getBestCmap() or {}
+    upem = font["head"].unitsPerEm
+    hmtx = font["hmtx"]
+
+    if font_name not in metrics_map:
+        metrics_map[font_name] = {}
+
+    out = metrics_map[font_name]
+
+    for cp in codepoints:
+        if cp not in cmap:
+            continue
+
+        gname = cmap[cp]
+        adv, _lsb = hmtx[gname]
+        _x0, y0, _x1, y1 = _glyph_bounds(font, gname)
+
+        depth = max(0.0, -y0 / upem)
+        height = max(0.0, y1 / upem)
+        width = adv / upem
+
+        key = str(cp)
+        old = out.get(key, [0.0, 0.0, 0.0, 0.0, 0.0])
+        italic = old[2] 
+        skew = old[3]
+
+        out[key] = [_clean(depth), _clean(height), _clean(italic), _clean(skew), _clean(width)]
+
+
+def read_metrics(path: Path) -> dict:
+    text = path.read_text(encoding="utf-8").strip()
+    text = re.sub(r"^\s*export\s+default\s+", "", text, count=1)
+    text = re.sub(r";\s*$", "", text)
+
+    return json.loads(text)
+
+
+def write_metrics(metrics_map: dict, p: Path) -> None:
+    p.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(metrics_map, ensure_ascii=False, indent=2, sort_keys=True)
+    p.write_text(f"export default {payload};\n", encoding="utf-8")
 
 
 def main():
     static_dir = Path("static")
-    fonts_dir = static_dir / "fonts"
+    katex_dir = Path("vendor") / "katex@0.17.0" / "dist"
+    fonts_dir = katex_dir / "fonts"
 
     cormorant_roman_path =  static_dir / "cormorant-garamond.ttf"
     cormorant_italic_path = static_dir / "cormorant-garamond-italic.ttf"
     katex_math_base_path = fonts_dir / "KaTeX_Math-Italic.woff2"
     katex_main_base_path = fonts_dir / "KaTeX_Main-Regular.woff2"
+    metrics_path = katex_dir / "fontMetricsData.json"
 
-    out_math_woff2 = static_dir / "KaTeX_Math-Latin.woff2"
-    out_main_woff2 = static_dir / "KaTeX_Main-DigitsPrime.woff2"
+    cormorant_roman = TTFont(cormorant_roman_path)
+    cormorant_italic = TTFont(cormorant_italic_path)
+    katex_math = TTFont(katex_math_base_path)
+    katex_main = TTFont(katex_main_base_path)
+    metrics = read_metrics(metrics_path)
 
-    # Load source/base fonts (only main does file I/O)
-    cormorant_roman_src = TTFont(cormorant_roman_path)
-    cormorant_italic_src = TTFont(cormorant_italic_path)
-    katex_math_base = TTFont(katex_math_base_path)
-    katex_main_base = TTFont(katex_main_base_path)
-
-    # Instantiate + bake feature selections into cmap
-    cormorant_italic_600 = instantiate_font(
-        cormorant_italic_src,
+    instantiate_font(
+        cormorant_italic,
         weight=600,
         feature_codepoints=MATH_CHARS,
         feature_tags={"ss03": 1, "calt": 1, "kern": 1},
     )
 
-    cormorant_roman_600 = instantiate_font(
-        cormorant_roman_src,
+    instantiate_font(
+        cormorant_roman,
         weight=600,
         feature_codepoints=DIGITS,
         feature_tags={"lnum": 1, "calt": 1, "kern": 1},
     )
 
-    # Patch KaTeX fonts
-    patched_math = patch_math_latin(katex_math_base, cormorant_italic_600)
-    patched_main = patch_main_digits_primes(katex_main_base, cormorant_roman_600)
+    patch_math_latin(katex_math, cormorant_italic)
+    patch_main_digits_primes(katex_main, cormorant_roman)
 
-    # Subset + save WOFF2
-    subset_to_woff2(patched_math, MATH_CHARS, out_math_woff2)
-    subset_to_woff2(patched_main, MAIN_CHARS, out_main_woff2)
+    save_font_in_place(katex_math, katex_main_base_path)
+    save_font_in_place(katex_main, katex_math_base_path)
+
+    update_metrics(metrics, katex_math, 'Math-Italic', MATH_CHARS)
+    update_metrics(metrics, katex_main, 'Main-Regular', MAIN_CHARS)
+    write_metrics(metrics, metrics_path)
 
 
 if __name__ == "__main__":
