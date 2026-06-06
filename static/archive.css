@@ -161,8 +161,12 @@ code {
   font-feature-settings: "calt" 1;
 }
 
+.katex {
+  font-size: 0.96em;
+}
+
 .katex-display {
-  font-size: 1.15em;
+  will-change: transform;
 }
 
 .katex-display > .katex {
@@ -171,10 +175,12 @@ code {
 }
 
 .katex-display .katex {
+  font-size: 1.05em;
   padding: 0.15rem;
 }
 
-.katex-display .tag {
+.katex-display > .katex > .katex-html > .tag {
+  position: fixed;
   user-select: none;
 }
 
@@ -190,11 +196,6 @@ code {
 
 .katex-display.overflow .katex-html {
   padding-left: var(--offset);
-}
-
-.katex :is(.text, .textrm) {
-  font-family: "EB Garamond", KaTeX_Main, serif;
-  font-size: 1.01em;
 }
 
 .no-wrap {
