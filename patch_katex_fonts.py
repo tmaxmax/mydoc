@@ -66,7 +66,7 @@ def main():
                     instantiateVariableFont(source_font, axisLimits=p.axis_limits, inplace=True)
                     instantiate_features(source_font, flatten(p.codepoints), p.feature_tags)
                     patch_glyph_set(base_font, source_font, flatten(p.codepoints), p.anchor_cp)
-                    patched_cps.extend(flatten(p.codepoints))
+                    patched_cps.extend(p.codepoints)
 
             update_metrics(metrics, base_font, base_font_name, flatten(patched_cps))
 
