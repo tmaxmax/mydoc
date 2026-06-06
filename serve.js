@@ -128,7 +128,7 @@ watcher.on("change", (path) => {
 
   rebuildTimeout = setTimeout(async () => {
     console.info(`Rebuilding . . .`);
-    const metadata = path === "filters/patch_katex_fonts.py" ? [] : ["dev.skip_fonts=true"];
+    const metadata = path === "patch_katex_fonts.py" ? [] : ["dev.skip_fonts=true"];
 
     controller = new AbortController();
     await build(controller.signal, ...metadata);
