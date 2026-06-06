@@ -7,7 +7,6 @@ import re
 import subprocess
 import os
 import json
-import sys
 
 import uharfbuzz as hb
 from fontTools.ttLib import TTFont
