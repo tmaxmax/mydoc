@@ -8,7 +8,7 @@ import json
 import uharfbuzz as hb
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
-from fontTools.pens.recordingPen import RecordingPen, DecomposingRecordingPen
+from fontTools.pens.recordingPen import DecomposingRecordingPen
 from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.pens.transformPen import TransformPen
