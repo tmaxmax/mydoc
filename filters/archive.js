@@ -55,6 +55,10 @@ pandoc.stdio((value, format, meta) => {
  */
 function getInlineContent(value) {
   switch (value.t) {
+    case "Quoted":
+      return value.c[1];
+    case "Emph":
+    case "Strong":
     case "Para":
       return value.c;
     case "Header":
