@@ -23,9 +23,10 @@ const DEFAULTS = "defaults/archive.yml";
 const PORT = 8080;
 
 let html;
-async function build(signal) {
+async function build(signal, ...metadata) {
   try {
-    const { stdout, stderr } = await exec("pandoc", ["-d", DEFAULTS, MD_FILE], {
+    metadata = metadata.length ? ["--metadata", ...metadata] : [];
+    const { stdout, stderr } = await exec("pandoc", ["-d", DEFAULTS, MD_FILE, ...metadata], {
       signal,
       maxBuffer: 64 * 1024 * 1024,
     });
@@ -121,15 +122,16 @@ const watcher = chokidar.watch(["templates", "static", "filters", DEFAULTS, MD_F
 
 let rebuildTimeout, controller;
 
-watcher.on("change", () => {
+watcher.on("change", (path) => {
   clearTimeout(rebuildTimeout);
   controller?.abort();
 
   rebuildTimeout = setTimeout(async () => {
-    console.info("Rebuilding . . .");
+    console.info(`Rebuilding . . .`);
+    const metadata = path === "filters/patch_katex_fonts.py" ? [] : ["dev.skip_fonts=true"];
 
     controller = new AbortController();
-    await build(controller.signal);
+    await build(controller.signal, ...metadata);
 
     clients.forEach((c) => c.send("reload"));
   }, 150);

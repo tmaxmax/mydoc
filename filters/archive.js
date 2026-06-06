@@ -4,6 +4,14 @@ import katex from "katex";
 import pandoc from "pandoc-filter";
 import hljs from "highlight.js";
 
+// @ts-ignore
+const { default: metricMap } = await import("../out/fontMetrics.json", { with: { type: "json" } });
+
+for (const [font, data] of Object.entries(metricMap)) {
+  // @ts-ignore
+  katex.__setFontMetrics(font, data);
+}
+
 pandoc.stdio((value, format, meta) => {
   if (value.t === "Math") {
     const [type, math] = value.c;

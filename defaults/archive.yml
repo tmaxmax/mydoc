@@ -6,6 +6,7 @@ syntax-highlighting: none
 css:
   - static/archive.css
 filters:
+  - filters/has_math.lua
   - filters/archive.js
   - filters/hyphens.js
 include-after-body:

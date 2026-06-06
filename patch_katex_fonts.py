@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
+import re
 import subprocess
 import os
 import json
@@ -12,23 +13,26 @@ from fontTools.pens.recordingPen import DecomposingRecordingPen
 from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.pens.transformPen import TransformPen
+from fontTools import subset
 
 @dataclass(frozen=True)
 class Patch:
     source_font: Path
     axis_limits: dict[str, float]
-    codepoints: list[int]
+    codepoints: list[int | range]
     feature_tags: dict[str, int]
     anchor_cp: int = ord('x')
 
 
+
 def main():
     static_dir = Path("static")
-    katex_dir = Path("vendor") / "katex@0.17.0" / "dist"
-    fonts_dir = katex_dir / "fonts"
+    katex_dir = Path("node_modules") / "katex"
+    fonts_dir = katex_dir / "dist" / "fonts"
+    out_dir = Path("out")
 
     # [0-9A-Za-zπμ]
-    alnum = list(range(0x41, 0x5B)) + list(range(0x61, 0x7B)) + [0x03C0, 0x03BC] + list(range(0x30, 0x3A))
+    alnum = [range(0x41, 0x5B), range(0x61, 0x7B), 0x03C0, 0x03BC, range(0x30, 0x3A)]
 
     patch_sets = {
         "Math-Italic": [
@@ -49,19 +53,57 @@ def main():
         ],
     }
 
-    metrics = read_metrics(katex_dir / "fontMetricsData.json")
+    metrics = read_metrics(katex_dir / "src" / "fontMetricsData.js")
+    metrics = {k: v for k, v in metrics.items() if k in patch_sets}
+    css = []
 
     for base_font_name, patches in patch_sets.items():
         with TTFont(fonts_dir / f"KaTeX_{base_font_name}.woff2") as base_font:
-            for patch in patches:
-                with TTFont(patch.source_font) as source_font:
-                    instantiateVariableFont(source_font, axisLimits=patch.axis_limits, inplace=True)                   
-                    instantiate_features(source_font, patch.codepoints, patch.feature_tags)
-                    patch_glyph_set(base_font, source_font, patch.codepoints, patch.anchor_cp)
-                    update_metrics(metrics, base_font, base_font_name, patch.codepoints)
-            save_font(base_font, fonts_dir / f"KaTeX_{base_font_name}_patched.woff2")
-    
-    write_metrics(metrics, katex_dir / 'fontMetrics.json')
+            patched_cps = []
+
+            for p in patches:
+                with TTFont(p.source_font) as source_font:
+                    instantiateVariableFont(source_font, axisLimits=p.axis_limits, inplace=True)
+                    instantiate_features(source_font, flatten(p.codepoints), p.feature_tags)
+                    patch_glyph_set(base_font, source_font, flatten(p.codepoints), p.anchor_cp)
+                    patched_cps.extend(flatten(p.codepoints))
+
+            update_metrics(metrics, base_font, base_font_name, flatten(patched_cps))
+
+            css_source_path = out_dir / f"KaTeX_{base_font_name}.woff2"
+            subset_font(base_font, flatten(patched_cps), css_source_path)
+
+            family, style = base_font_name.split("-")
+            css.append(
+                rf"""@font-face {{
+    font-family: KaTeX_{family};
+    font-style: {'normal' if style == 'Regular' else style.lower()};
+    src: url("{css_source_path.name}") format("woff2");
+    unicode-range: {_unicode_range(patched_cps)};
+}}"""
+            )
+
+    write_metrics(metrics, out_dir / "fontMetrics.json")
+    (out_dir / "katex.css").write_text("\n".join(css))
+
+
+def _unicode_range(codepoints: list[int | range]) -> str:
+    parts = []
+    for i in codepoints:
+        if isinstance(i, range):
+            parts.append(f"U+{min(i):04X}-{max(i):04X}")
+        else:
+            parts.append(f"U+{i:04X}")
+    return ', '.join(parts)
+
+
+def flatten(it):
+    for i in it:
+        try:
+            yield from i
+        except:
+            yield i
+
 
 
 def hb_font_from_ttfont(font: TTFont) -> hb.Font:
@@ -172,8 +214,11 @@ def ots_sanitize_file(input_path: Path) -> None:
         raise RuntimeError(f"OTS sanitize failed for {input_path}:\n{proc.stderr}")
 
 
-def save_font(font: TTFont, p: Path) -> None:
-    font.flavor = "woff2"
+def subset_font(font: TTFont, codepoints: list[int], p: Path) -> None:
+    opts = subset.Options(flavor="woff2")
+    s = subset.Subsetter(options=opts)
+    s.populate(unicodes=codepoints)
+    s.subset(font)
 
     tmp = p.with_suffix(".tmp.woff2")
     font.save(str(tmp))
@@ -234,7 +279,12 @@ def update_metrics(
 
 
 def read_metrics(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8").strip())
+    text = path.read_text(encoding='utf-8').strip()
+    text = re.sub(r'(?m)^[ \t]*//.*(?:\n|$)', '', text)
+    text = re.sub(r"^\s*export\s+default\s+", "", text, count=1)
+    text = re.sub(r",\n(\s*\})", r"\n\1", text)
+    text = re.sub(r";\s*$", "", text)
+    return json.loads(text)
 
 
 def write_metrics(metrics_map: dict, p: Path) -> None:
