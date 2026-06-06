@@ -80,6 +80,7 @@ main > p:has(.katex-display) {
   min-width: min(calc(100vw - 2.66rem - env(safe-area-inset-left) - env(safe-area-inset-right)), 650px);
   width: fit-content;
   max-width: calc(100vw - 2.66rem - env(safe-area-inset-left) - env(safe-area-inset-right));
+  margin: 0 auto;
 }
 
 img,
@@ -161,12 +162,16 @@ code {
 }
 
 .katex-display {
-  font-size: 1.1rem;
+  font-size: 1.08em;
 }
 
 .katex-display > .katex {
   overflow: auto hidden;
   scrollbar-width: thin;
+}
+
+.katex-display .katex {
+  padding: 0.15rem;
 }
 
 .katex-display .tag {
@@ -189,6 +194,7 @@ code {
 
 .katex :is(.text, .textrm) {
   font-family: "EB Garamond", KaTeX_Main, serif;
+  font-size: 1.01em;
 }
 
 .no-wrap {
