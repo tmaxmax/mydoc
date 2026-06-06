@@ -1,10 +1,13 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from io import BytesIO
+from operator import itemgetter
 from pathlib import Path
 import re
 import subprocess
 import os
 import json
+import sys
 
 import uharfbuzz as hb
 from fontTools.ttLib import TTFont
@@ -12,17 +15,9 @@ from fontTools.varLib.instancer import instantiateVariableFont
 from fontTools.pens.recordingPen import DecomposingRecordingPen
 from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
+from fontTools.pens.cu2quPen import Cu2QuPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools import subset
-
-@dataclass(frozen=True)
-class Patch:
-    source_font: Path
-    axis_limits: dict[str, float]
-    codepoints: list[int | range]
-    feature_tags: dict[str, int]
-    anchor_cp: int = ord('x')
-
 
 
 def main():
@@ -32,7 +27,11 @@ def main():
     out_dir = Path("out")
 
     # [0-9A-Za-zπμ]
-    alnum = [range(0x41, 0x5B), range(0x61, 0x7B), 0x03C0, 0x03BC, range(0x30, 0x3A)]
+    uppercase = range(0x41, 0x5b)
+    alnum = [uppercase, range(0x61, 0x7B), 0x03C0, 0x03BC, range(0x30, 0x3A)]
+    
+    garamond_math_path = static_dir / "garamond-math.otf"
+    garamond_math_feature_tags = {'ss07': 1, 'ss08': 1, 'ss09': 1}
 
     patch_sets = {
         "Math-Italic": [
@@ -51,6 +50,38 @@ def main():
                 codepoints=alnum,
             ),
         ],
+        'Caligraphic-Regular': [
+            Patch(
+                source_font=garamond_math_path,
+                feature_tags=garamond_math_feature_tags,
+                codepoints=Projection(rng=uppercase, offset=0x1D45B),
+                base_anchor_cp=ord('O')
+            )
+        ],
+        'Caligraphic-Bold': [
+            Patch(
+                source_font=garamond_math_path,
+                feature_tags=garamond_math_feature_tags,
+                codepoints=Projection(rng=uppercase, offset=0x1D48F),
+                base_anchor_cp=ord('O')
+            )
+        ],
+        'AMS-Regular': [
+            Patch(
+                source_font=garamond_math_path,
+                feature_tags=garamond_math_feature_tags,
+                codepoints={
+                    ord('C'): 0x2102,
+                    ord('H'): 0x210D,
+                    ord('N'): 0x2115,
+                    ord('P'): 0x2119,
+                    ord('Q'): 0x211A,
+                    ord('R'): 0x211D,
+                    ord('Z'): 0x2124,
+                },
+                base_anchor_cp=ord('N')
+            )
+        ]
     }
 
     metrics = read_metrics(katex_dir / "src" / "fontMetricsData.js")
@@ -59,27 +90,28 @@ def main():
 
     for base_font_name, patches in patch_sets.items():
         with TTFont(fonts_dir / f"KaTeX_{base_font_name}.woff2") as base_font:
-            patched_cps = []
-
             for p in patches:
                 with TTFont(p.source_font) as source_font:
-                    instantiateVariableFont(source_font, axisLimits=p.axis_limits, inplace=True)
-                    instantiate_features(source_font, flatten(p.codepoints), p.feature_tags)
-                    patch_glyph_set(base_font, source_font, flatten(p.codepoints), p.anchor_cp)
-                    patched_cps.extend(p.codepoints)
+                    if p.axis_limits:
+                        instantiateVariableFont(source_font, axisLimits=p.axis_limits, inplace=True)
+                    if p.feature_tags:
+                        instantiate_features(source_font, p.unicodes_source(), p.feature_tags)
 
-            update_metrics(metrics, base_font, base_font_name, flatten(patched_cps))
+                    patch_glyph_set(base_font, source_font, p.unicodes(), p.base_anchor_cp, p.source_anchor_cp())
+
+            update_metrics(metrics, base_font, base_font_name, flatten(p.unicodes_base() for p in patches))
 
             css_source_path = out_dir / f"KaTeX_{base_font_name}.woff2"
-            subset_font(base_font, flatten(patched_cps), css_source_path)
+            subset_font(base_font, flatten(p.unicodes_base() for p in patches), css_source_path)
 
             family, style = base_font_name.split("-")
             css.append(
                 rf"""@font-face {{
     font-family: KaTeX_{family};
-    font-style: {'normal' if style == 'Regular' else style.lower()};
+    font-style: {'italic' if 'Italic' in style else 'normal'};
+    font-weight: {'bold' if 'Bold' in style else 'normal'};
     src: url("{css_source_path.name}") format("woff2");
-    unicode-range: {_unicode_range(patched_cps)};
+    unicode-range: {_unicode_range(patches)};
 }}"""
             )
 
@@ -87,13 +119,60 @@ def main():
     (out_dir / "katex.css").write_text("\n".join(css))
 
 
-def _unicode_range(codepoints: list[int | range]) -> str:
+@dataclass(frozen=True)
+class Projection:
+    rng: range
+    offset: int
+
+    def __iter__(self):
+        for i in self.rng:
+            yield (i, i + self.offset)
+
+@dataclass(frozen=True)
+class Patch:
+    source_font: Path
+    codepoints: list[int | range] | dict[int, int] | Projection  # base -> source
+    base_anchor_cp: int = ord('x')
+    axis_limits: dict[str, float] | None = None
+    feature_tags: dict[str, int] | None = None
+
+    def unicodes(self) -> Iterable[tuple[int, int]]:
+        if isinstance(self.codepoints, list):
+            return ((i, i) for i in flatten(self.codepoints))
+        if isinstance(self.codepoints, dict):
+            return self.codepoints.items()
+        return self.codepoints
+    
+    def unicodes_base(self) -> Iterable[int]:
+        return map(itemgetter(0), self.unicodes())
+    
+    def unicodes_source(self) -> Iterable[int]:
+        return map(itemgetter(1), self.unicodes())
+    
+    def source_anchor_cp(self) -> int:
+        if isinstance(self.codepoints, list):
+            return self.base_anchor_cp
+        if isinstance(self.codepoints, dict):
+            return self.codepoints[self.base_anchor_cp]
+        return self.base_anchor_cp + self.codepoints.offset
+
+
+def _unicode_range(patches: list[Patch]) -> str:
     parts = []
-    for i in codepoints:
-        if isinstance(i, range):
-            parts.append(f"U+{min(i):04X}-{max(i):04X}")
+    for p in patches:
+        if isinstance(p.codepoints, list):
+            for i in p.codepoints:
+                if isinstance(i, range):
+                    parts.append(f"U+{min(i):04X}-{max(i):04X}")
+                else:
+                    parts.append(f"U+{i:04X}")
+        elif isinstance(p.codepoints, dict):
+            for i in p.codepoints.keys():
+                parts.append(f"U+{i:04X}")
         else:
-            parts.append(f"U+{i:04X}")
+            i = p.codepoints.rng
+            parts.append(f"U+{min(i):04X}-{max(i):04X}")
+
     return ', '.join(parts)
 
 
@@ -105,14 +184,13 @@ def flatten(it):
             yield i
 
 
-
 def hb_font_from_ttfont(font: TTFont) -> hb.Font:
     buf = BytesIO()
     font.save(buf)
     return hb.Font(hb.Face(buf.getvalue()))
 
 
-def instantiate_features(font: TTFont, codepoints: list[int], tags: dict[str, int]) -> None:
+def instantiate_features(font: TTFont, codepoints: Iterable[int], tags: dict[str, int]) -> None:
     hb_font = hb_font_from_ttfont(font)
     cp_to_glyph = {}
 
@@ -132,13 +210,15 @@ def instantiate_features(font: TTFont, codepoints: list[int], tags: dict[str, in
 
 def _draw_src_glyph(src: TTFont, src_gs, src_gname: str, pen) -> None:
     """Draw src glyph into `pen`, decomposing composites when needed."""
-    g = src["glyf"][src_gname]
-    if g.isComposite():
-        dpen = DecomposingRecordingPen(src_gs)
-        src_gs[src_gname].draw(dpen)
-        dpen.replay(pen)
-    else:
-        src_gs[src_gname].draw(pen)
+    if 'glyf' in src:
+        g = src["glyf"][src_gname]
+        if g.isComposite():
+            dpen = DecomposingRecordingPen(src_gs)
+            src_gs[src_gname].draw(dpen)
+            dpen.replay(pen)
+            return
+
+    src_gs[src_gname].draw(pen)
 
 
 def bounds(glyph_set, glyph_name, src_font: TTFont | None = None):
@@ -170,38 +250,43 @@ def replace_glyph_and_hmtx(
     tx = new_lsb - sx0 * scale
     ty = 0.0  # baseline-preserving full replacement
 
-    pen = TTGlyphPen(base_gs)
-    tpen = TransformPen(pen, (scale, 0, 0, scale, tx, ty))
-    _draw_src_glyph(src, src_gs, src_gname, tpen)
+    tt_pen = TTGlyphPen(base_gs)
+    out_pen = TransformPen(tt_pen, (scale, 0, 0, scale, tx, ty))
 
-    base["glyf"][base_gname] = pen.glyph()
+    if "CFF " in src or "CFF2" in src:
+        out_pen = Cu2QuPen(out_pen, max_err=1.0, reverse_direction=True)
+    
+    _draw_src_glyph(src, src_gs, src_gname, out_pen)
+
+    base["glyf"][base_gname] = tt_pen.glyph()
     base["hmtx"][base_gname] = (new_adv, new_lsb)
 
 
 def patch_glyph_set(
     base: TTFont,
     src: TTFont,
-    codepoints: list[int],
-    anchor_cp: int,  # e.g. ord("x"), ord("0")
+    codepoints: Iterable[tuple[int, int]],
+    base_anchor_cp: int,
+    src_anchor_cp: int,
 ) -> None:
     base_cmap = base.getBestCmap()
     src_cmap = src.getBestCmap()
     base_gs = base.getGlyphSet()
     src_gs = src.getGlyphSet()
 
-    if anchor_cp not in base_cmap or anchor_cp not in src_cmap:
-        raise ValueError(f"Anchor codepoint {anchor_cp} missing in cmap")
+    if base_anchor_cp not in base_cmap or src_anchor_cp not in src_cmap:
+        raise ValueError("Anchor codepoint missing in cmap")
 
-    bx0, by0, bx1, by1 = bounds(base_gs, base_cmap[anchor_cp])
-    sx0, sy0, sx1, sy1 = bounds(src_gs, src_cmap[anchor_cp], src_font=src)
+    _, by0, _, by1 = bounds(base_gs, base_cmap[base_anchor_cp])
+    _, sy0, _, sy1 = bounds(src_gs, src_cmap[src_anchor_cp], src_font=src)
 
     base_h = by1 - by0
     src_h = sy1 - sy0
     scale = (base_h / src_h) if src_h else 1.0
 
-    for cp in codepoints:
-        if cp in base_cmap and cp in src_cmap:
-            replace_glyph_and_hmtx(base, src, base_cmap[cp], src_cmap[cp], scale)
+    for base_cp, src_cp in codepoints:
+        if base_cp in base_cmap and src_cp in src_cmap:
+            replace_glyph_and_hmtx(base, src, base_cmap[base_cp], src_cmap[src_cp], scale)
 
 
 def ots_sanitize_file(input_path: Path) -> None:
