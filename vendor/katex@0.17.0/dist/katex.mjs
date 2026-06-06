@@ -1,4 +1,4 @@
-import fontMetricsData from "./fontMetrics.json" with { type: 'json '};
+import fontMetricsData from "./fontMetrics.json" with { type: 'json' };
 
 /**
  * This is the ParseError class, which is the main error thrown by KaTeX
