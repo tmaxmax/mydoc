@@ -15,5 +15,6 @@ function Pandoc(doc)
     pandoc.pipe("python3", {"patch_katex_fonts.py"}, "")
   end
 
-  return doc
+  local out = pandoc.pipe("node", {"--experimental-strip-types", "filters/archive.ts"}, pandoc.write(doc, "json"))
+  return pandoc.read(out, "json")
 end

@@ -51,6 +51,7 @@ body {
 main {
   width: 100%;
   margin: auto;
+  container: main / inline-size;
 }
 
 nav {
@@ -182,6 +183,10 @@ code {
 .katex-display > .katex > .katex-html > .tag {
   position: fixed;
   user-select: none;
+}
+
+.katex-display > .katex {
+  white-space: normal;
 }
 
 .katex-display.overflow,

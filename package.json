@@ -12,10 +12,14 @@
     "@resvg/resvg-js": "^2.6.2",
     "cheerio": "^1.2.0",
     "chokidar": "^5.0.0",
+    "get-stdin": "^10.0.0",
     "highlight.js": "^11.11.1",
     "katex": "^0.17.0",
     "mathjax-node": "^2.1.1",
     "pandoc-filter": "^2.2.0",
     "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2"
   }
 }
