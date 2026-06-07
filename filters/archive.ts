@@ -17,8 +17,10 @@ import fontMetricsData from "katex/src/fontMetricsData.js";
 import pandoc from "pandoc-filter";
 import hljs from "highlight.js";
 import getStdin from "get-stdin";
+import { crc32 } from "zlib";
 
 const responsiveEqCSS: string[] = [];
+const displayMathFontSizeEm = 1.05; // keep in sync with CSS
 
 const action: pandoc.FilterActionAsync = (value, format, meta) => {
   if (value.t === "Math") {
@@ -87,6 +89,8 @@ function getInlineContent(value: pandoc.AnyElt) {
 }
 
 function renderDisplayMath(math: string) {
+  const hash = crc32(math);
+
   let maxBrk = 0;
   for (const [, a] of math.matchAll(/\\brk(?:\[(\d+)?(?:,(\d+)?)?\])?/g)) {
     maxBrk = Math.max(maxBrk, a ? Number.parseInt(a) : 1);
@@ -102,13 +106,13 @@ function renderDisplayMath(math: string) {
       macros: { "\\brk": createBrkMacro(brk) },
     });
 
-    const minWidth = Math.round(width(dom, 1.05) + 1);
+    const minWidth = Math.round(width(dom, displayMathFontSizeEm) + 1);
     if (maxWidth && minWidth >= maxWidth) {
       throw new Error(`Breakpoint ${brk} gives wider equation`, { cause: math });
     }
 
     if (maxWidth || brk < maxBrk) {
-      const id = `req-${Math.random().toString(36).slice(2, 10)}`;
+      const id = `req-${hash}-${brk}`;
       responsiveEqCSS.push(/* css */ `
 #${id} {
   display: none;
@@ -199,6 +203,8 @@ function width(d?: HtmlDomNode | HtmlDomNode[], emSize = 1, parent?: HtmlDomNode
       return d.width * emSize;
     }
 
+    // Workaround for KaTeX library setting width based on
+    // first codepoint only.
     // @ts-expect-error wrong upstream types
     const metrics = fontMetricsData[retrieveFont(d, parent!)];
     const actualWidth = codepoints.map((cp) => metrics[cp.codePointAt(0)!][4]).reduce((a, b) => a + b, 0);
