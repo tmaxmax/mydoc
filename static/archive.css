@@ -65,19 +65,20 @@ nav {
   z-index: 1;
 }
 
-main > * {
+main > *,
+main > details > * {
   max-width: 650px;
   margin-left: auto;
   margin-right: auto;
 }
 
-main > pre:has(> code) {
+main pre:has(> code) {
   min-width: min(calc(100vw - 2.66rem - env(safe-area-inset-left) - env(safe-area-inset-right)), 650px);
   width: min(calc(100vw - 2.66rem - env(safe-area-inset-left) - env(safe-area-inset-right)), 800px);
   max-width: fit-content;
 }
 
-main > p:has(.katex-display) {
+main p:has(.katex-display) {
   min-width: min(calc(100vw - 2.66rem - env(safe-area-inset-left) - env(safe-area-inset-right)), 650px);
   width: fit-content;
   max-width: calc(100vw - 2.66rem - env(safe-area-inset-left) - env(safe-area-inset-right));
@@ -237,12 +238,13 @@ header p {
   margin: 0.5rem auto;
 }
 
-details summary {
-  user-select: none;
+details {
+  display: contents;
 }
 
-details + details {
-  margin-top: 2rem;
+details summary {
+  user-select: none;
+  margin: 1rem auto;
 }
 
 #dark-mode {
@@ -412,11 +414,15 @@ details + details {
   outline: 2px solid var(--text);
 }
 
-.diarytime {
+.diarytime > .line-block {
   text-align: center;
   width: fit-content;
   margin-left: auto;
   font-style: italic;
+}
+
+.diarytime {
+  margin: 1em auto;
 }
 
 .book,
@@ -445,6 +451,10 @@ details + details {
   margin: 0;
 }
 
+.poem p {
+  margin: 0.9em auto;
+}
+
 .n {
   hyphens: manual;
 }
@@ -467,7 +477,7 @@ details + details {
 :root {
   color-scheme: light dark;
 
-  --indent: min(calc(0.7rem + 2.75vw), 2rem);
+  --indent: min(calc(0.7rem + 2.75vw), 1.8rem);
 
   --bg: light-dark(#fffff8, black);
   --text: light-dark(#111, #ddd);
