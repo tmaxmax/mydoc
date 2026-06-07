@@ -45,4 +45,5 @@ else
 fi
 
 cd "$PROJECT_ROOT"
+source .venv/bin/activate
 exec pandoc "-d" "$DEFAULTS" "${INPUT_ARGS[@]}" "-o" "$OUTPUT" "$@"
