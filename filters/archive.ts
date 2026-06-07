@@ -10,35 +10,15 @@ import type {
   Span,
   SymbolNode,
   TextFont,
-  MacroArg,
-  SettingsOptions,
+  MacroDefinition,
+  Token,
 } from "katex";
 import fontMetricsData from "katex/src/fontMetricsData.js";
 import pandoc from "pandoc-filter";
 import hljs from "highlight.js";
-import { crc32 } from "zlib";
 import getStdin from "get-stdin";
 
 const responsiveEqCSS: string[] = [];
-const renderOptions = {
-  strict: "error",
-  output: "htmlAndMathml",
-  macros: {
-    "\\brk": (ctx) => {
-      ctx.consumeSpaces();
-      if (ctx.future().text === "[") {
-        ctx.popToken();
-        ctx.consumeArg(["]"]);
-      }
-
-      if (ctx.future().text === "{") {
-        ctx.consumeArg();
-      }
-
-      return "";
-    },
-  },
-} satisfies Partial<SettingsOptions>;
 
 const action: pandoc.FilterActionAsync = (value, format, meta) => {
   if (value.t === "Math") {
@@ -46,7 +26,12 @@ const action: pandoc.FilterActionAsync = (value, format, meta) => {
 
     const [{ t }, math] = value.c;
     const html =
-      t === "DisplayMath" ? renderDisplayMath(math.trim()) : katex.renderToString(math.trim(), renderOptions);
+      t === "DisplayMath"
+        ? renderDisplayMath(math.trim())
+        : katex.renderToString(math.trim(), {
+            strict: "error",
+            output: "htmlAndMathml",
+          });
 
     return pandoc.RawInline("html", html);
   }
@@ -102,71 +87,81 @@ function getInlineContent(value: pandoc.AnyElt) {
 }
 
 function renderDisplayMath(math: string) {
+  let maxBrk = 0;
+  for (const [, a] of math.matchAll(/\\brk(?:\[(\d+)?(?:,(\d+)?)?\])?/g)) {
+    maxBrk = Math.max(maxBrk, a ? Number.parseInt(a) : 1);
+  }
+
   let maxWidth = 0;
   let html = "";
 
-  for (let brk = 1; math.includes("\\brk"); brk++) {
-    const dom = katex.__renderToDomTree(math.trim(), { displayMode: true, ...renderOptions });
+  for (let brk = 0; brk <= maxBrk; brk++) {
+    const dom = katex.__renderToDomTree(math, {
+      displayMode: true,
+      strict: "error",
+      macros: { "\\brk": createBrkMacro(brk) },
+    });
+
     const minWidth = Math.round(width(dom, 1.05) + 1);
-    const id = `req-${crc32(math)}`;
-    responsiveEqCSS.push(/* css */ `
+    if (maxWidth && minWidth >= maxWidth) {
+      throw new Error(`Breakpoint ${brk} gives wider equation`, { cause: math });
+    }
+
+    if (maxWidth || brk < maxBrk) {
+      const id = `req-${Math.random().toString(36).slice(2, 10)}`;
+      responsiveEqCSS.push(/* css */ `
 #${id} {
   display: none;
 }
-@container main (${minWidth}em <= width ${maxWidth > 0 ? `< ${maxWidth}em` : ""}) {
+@container main (${brk < maxBrk ? `${minWidth}em <=` : ""} width ${maxWidth > 0 ? `< ${maxWidth}em` : ""}) {
   #${id} {
     display: block;
   }
 }`);
-    dom.setAttribute("id", id);
+      dom.setAttribute("id", id);
+    }
+
     html += dom.toMarkup();
-    math = cleanMathBreakpoint(math, brk);
     maxWidth = minWidth;
   }
 
-  if (maxWidth === 0) {
-    return katex.renderToString(math, { displayMode: true, ...renderOptions });
-  }
-
-  const dom = katex.__renderToDomTree(math.trim(), { displayMode: true, ...renderOptions });
-  const id = `req-${crc32(math)}`;
-  responsiveEqCSS.push(/* css */ `
-#${id} {
-  display: none;
-}
-@container main (width < ${maxWidth}em) {
-  #${id} {
-    display: block;
-  }
-}`);
-  dom.setAttribute("id", id);
-
-  return html + dom.toMarkup();
+  return html;
 }
 
-function cleanMathBreakpoint(math: string, brk: number) {
-  const re = new RegExp(brk === 1 ? String.raw`\\brk(?:\[1\])?(\{|[^[]|$)` : String.raw`\\brk\[${brk}\](\{)?`);
-  for (let m; (m = math.match(re)); ) {
-    const [macro, trailing] = m;
-    const start = m.index ?? 0;
+function createBrkMacro(brk: number): MacroDefinition {
+  const raw = (t: Token[]) =>
+    t
+      .map((t) => t.text)
+      .reverse()
+      .join("");
 
-    let end = start + macro.length;
-    if (trailing === "{") {
-      // The string was parsed by KaTeX by this point so we assume it is balanced.
-      for (let count = 1; count > 0; end++) {
-        const c = math.charAt(end);
-        count += c === "{" ? 1 : c === "}" ? -1 : 0;
+  return (ctx) => {
+    ctx.consumeSpaces();
+
+    let a = 1;
+    let b = Infinity;
+    if (ctx.future().text === "[") {
+      ctx.popToken();
+
+      const input = raw(ctx.consumeArg(["]"]).tokens).trim();
+      if (input.includes(",")) {
+        const [left, right] = input.split(",").map((s) => s.trim());
+        a = left === "" ? 0 : Number.parseInt(left);
+        b = right === "" ? Infinity : Number.parseInt(right);
+      } else {
+        a = b = Number.parseInt(input);
       }
-    } else if (trailing) {
-      // Keep original string exactly as is.
-      end--;
     }
 
-    // Macro without any content is a line break.
-    math = math.slice(0, start) + (math.slice(start + macro.length, end - 1) || "\\\\") + math.slice(end);
-  }
+    if (ctx.future().text === "{") {
+      const { tokens } = ctx.consumeArg();
+      if (a <= brk && brk <= b) {
+        return { tokens, numArgs: 0 };
+      }
+    }
 
-  return math;
+    return a <= brk && brk <= b ? "\\\\" : "";
+  };
 }
 
 let sizings: Map<string, number> | undefined;

@@ -4,5 +4,6 @@ declare module "katex" {
   export * from "katex/src/domTree.ts";
   export * from "katex/src/defineMacro.ts";
   export * from "katex/src/Settings.ts";
+  export * from "katex/src/Token.ts";
   export default katex;
 }

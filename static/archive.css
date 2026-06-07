@@ -185,22 +185,14 @@ code {
   user-select: none;
 }
 
-.katex-display > .katex {
+.katex-display:not(:has(.tag)) > .katex {
   white-space: normal;
 }
 
-.katex-display.overflow,
-.katex-display.overflow > .katex {
-  text-align: left;
-}
-
-.katex-display.overflow .katex-html::after {
+.katex-display:has(.tag) .katex-html::after {
   content: "\200b";
-  padding-right: calc(var(--tag-size) + 0.4em);
-}
-
-.katex-display.overflow .katex-html {
-  padding-left: var(--offset);
+  /* could tailor-fit server-side for every equations (incl. responsive variants) */
+  padding: 0.8em;
 }
 
 .no-wrap {

@@ -1,8 +1,3 @@
-.katex-display:has(.tag) .katex-html::after {
-  content: "\200b";
-  padding-right: 2em;
-}
-
 #dark-mode [value="system"],
 #dark-mode [for="dark-system"] {
   display: none;
