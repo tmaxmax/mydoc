@@ -56,6 +56,11 @@ if (!html) {
 
 const server = createServer(async (req, res) => {
   try {
+    if (req.url === "/favicon.ico") {
+      res.writeHead(404);
+      return;
+    }
+
     if (req.url === "/me/share.js") {
       const file = createReadStream("static/share.js");
       file.on("error", () => res.writeHead(404));
