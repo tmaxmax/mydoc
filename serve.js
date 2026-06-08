@@ -115,7 +115,9 @@ wss.on("connection", (ws) => {
   ws.on("close", () => clients.delete(ws));
 });
 
-const watcher = chokidar.watch(["templates", "static", "filters", DEFAULTS, MD_FILE], {
+const PATCH_FONTS = "patch_katex_fonts.py";
+
+const watcher = chokidar.watch(["templates", "static", "filters", PATCH_FONTS, DEFAULTS, MD_FILE], {
   persistent: true,
   ignoreInitial: true,
 });
@@ -128,7 +130,7 @@ watcher.on("change", (path) => {
 
   rebuildTimeout = setTimeout(async () => {
     console.info(`Rebuilding . . .`);
-    const metadata = path === "patch_katex_fonts.py" ? [] : ["dev.skip_fonts=true"];
+    const metadata = path === PATCH_FONTS ? [] : ["dev.skip_fonts=true"];
 
     controller = new AbortController();
     await build(controller.signal, ...metadata);

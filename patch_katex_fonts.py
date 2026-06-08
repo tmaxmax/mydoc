@@ -22,7 +22,6 @@ from fontTools import subset
 def main():
     static_dir = Path("static")
     katex_dir = Path("node_modules") / "katex"
-    fonts_dir = katex_dir / "dist" / "fonts"
     out_dir = Path("out")
 
     # [0-9A-Za-zπμ]
@@ -85,37 +84,27 @@ def main():
 
     metrics = read_metrics(katex_dir / "src" / "fontMetricsData.js")
     metrics = {k: v for k, v in metrics.items() if k in patch_sets}
-    css = []
+
+    css = (katex_dir / "dist" / "katex.min.css").read_text(encoding='utf-8')
+    css = re.sub(r",url\(fonts\/\S+\.(woff|ttf)\) format\(\"(woff|truetype)\"\)", "", css)
+    css = re.sub(r"fonts(\/KaTeX_(\S+)\.woff2)", lambda m: "." + m[1] if m[2] in patch_sets else m[0], css)
 
     for base_font_name, patches in patch_sets.items():
-        with TTFont(fonts_dir / f"KaTeX_{base_font_name}.woff2") as base_font:
+        base_font_path = katex_dir / "dist" / "fonts" / f"KaTeX_{base_font_name}.woff2"
+        with TTFont(base_font_path) as base_font:
             for p in patches:
                 with TTFont(p.source_font) as source_font:
                     if p.axis_limits:
                         instantiateVariableFont(source_font, axisLimits=p.axis_limits, inplace=True)
                     if p.feature_tags:
                         instantiate_features(source_font, p.unicodes_source(), p.feature_tags)
-
                     patch_glyph_set(base_font, source_font, p.unicodes(), p.base_anchor_cp, p.source_anchor_cp())
 
             update_metrics(metrics, base_font, base_font_name, flatten(p.unicodes_base() for p in patches))
-
-            css_source_path = out_dir / f"KaTeX_{base_font_name}.woff2"
-            subset_font(base_font, flatten(p.unicodes_base() for p in patches), css_source_path)
-
-            family, style = base_font_name.split("-")
-            css.append(
-                rf"""@font-face {{
-    font-family: KaTeX_{family};
-    font-style: {'italic' if 'Italic' in style else 'normal'};
-    font-weight: {'bold' if 'Bold' in style else 'normal'};
-    src: url("{css_source_path.name}") format("woff2");
-    unicode-range: {_unicode_range(patches)};
-}}"""
-            )
+            save_font(base_font, out_dir / base_font_path.name)
 
     write_metrics(metrics, out_dir / "fontMetrics.json")
-    (out_dir / "katex.css").write_text("\n".join(css))
+    (out_dir / "katex.css").write_text(css)
 
 
 @dataclass(frozen=True)
@@ -288,30 +277,20 @@ def patch_glyph_set(
             replace_glyph_and_hmtx(base, src, base_cmap[base_cp], src_cmap[src_cp], scale)
 
 
-def ots_sanitize_file(input_path: Path) -> None:
+def save_font(font: TTFont, p: Path) -> None:
+    tmp = p.with_suffix(".tmp.woff2")
+    font.save(str(tmp))
+
     proc = subprocess.run(
-        ["ots-sanitize", str(input_path)],
+        ["ots-sanitize", str(tmp)],
         capture_output=True,
         text=True,
     )
     if proc.returncode != 0:
-        raise RuntimeError(f"OTS sanitize failed for {input_path}:\n{proc.stderr}")
-
-
-def subset_font(font: TTFont, codepoints: list[int], p: Path) -> None:
-    opts = subset.Options(flavor="woff2")
-    s = subset.Subsetter(options=opts)
-    s.populate(unicodes=codepoints)
-    s.subset(font)
-
-    tmp = p.with_suffix(".tmp.woff2")
-    font.save(str(tmp))
-
-    try:
-        ots_sanitize_file(tmp)
-        os.replace(tmp, p)
-    finally:
         tmp.unlink(missing_ok=True)
+        raise RuntimeError(f"OTS sanitize failed for {tmp}:\n{proc.stderr}")
+
+    os.replace(tmp, p)
 
 
 def _clean(v: float, ndigits: int = 5) -> float:

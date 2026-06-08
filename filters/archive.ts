@@ -180,7 +180,7 @@ async function initKatex() {
   }
 
   sizings = new Map();
-  for (const [, sizing, em] of read("./static/katex.css").matchAll(
+  for (const [, sizing, em] of read("./node_modules/katex/dist/katex.min.css").matchAll(
     /\.katex\s+\.sizing\.(reset-size\d+\.size\d+)\{font-size:((?:\.|\d)+)em\}/g,
   )) {
     sizings.set(sizing, Number.parseFloat(em));
@@ -326,8 +326,9 @@ function read(file: string) {
   return fs.readFileSync(file, { encoding: "utf-8" });
 }
 
-function getMetaList(v?: pandoc.PandocMetaValue) {
-  return v?.t === "MetaList" ? v : ({ t: "MetaList", c: v ? [v] : [] } satisfies pandoc.PandocMetaValue);
+function metaList(meta: pandoc.PandocMetaMap, key: string) {
+  const v = meta[key];
+  return (meta[key] = v?.t === "MetaList" ? v : { t: "MetaList", c: v == null ? [] : [v] }).c;
 }
 
 const doc = await pandoc.filter(JSON.parse(await getStdin()), action, process.argv.length > 2 ? process.argv[2] : "");
@@ -348,10 +349,7 @@ if (responsiveMathContainerQueries.length) {
   }`).toArray().join('\n')}
 </style>`
 
-  const block = pandoc.RawBlock("html", style);
-  const header = getMetaList(doc.meta["header-includes"]);
-  header.c.push({ t: "MetaBlocks", c: [block] });
-  doc.meta["header-includes"] = header;
+  metaList(doc.meta, "header-includes").push({ t: "MetaBlocks", c: [pandoc.RawBlock("html", style)] });
 }
 
 process.stdout.write(JSON.stringify(doc));
