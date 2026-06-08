@@ -145,25 +145,6 @@ class Patch:
         return self.base_anchor_cp + self.codepoints.offset
 
 
-def _unicode_range(patches: list[Patch]) -> str:
-    parts = []
-    for p in patches:
-        if isinstance(p.codepoints, list):
-            for i in p.codepoints:
-                if isinstance(i, range):
-                    parts.append(f"U+{min(i):04X}-{max(i):04X}")
-                else:
-                    parts.append(f"U+{i:04X}")
-        elif isinstance(p.codepoints, dict):
-            for i in p.codepoints.keys():
-                parts.append(f"U+{i:04X}")
-        else:
-            i = p.codepoints.rng
-            parts.append(f"U+{min(i):04X}-{max(i):04X}")
-
-    return ', '.join(parts)
-
-
 def flatten(it):
     for i in it:
         try:
@@ -277,20 +258,31 @@ def patch_glyph_set(
             replace_glyph_and_hmtx(base, src, base_cmap[base_cp], src_cmap[src_cp], scale)
 
 
-def save_font(font: TTFont, p: Path) -> None:
-    tmp = p.with_suffix(".tmp.woff2")
-    font.save(str(tmp))
-
+def ots_sanitize_file(input_path: Path) -> None:
     proc = subprocess.run(
-        ["ots-sanitize", str(tmp)],
+        ["ots-sanitize", str(input_path)],
         capture_output=True,
         text=True,
     )
     if proc.returncode != 0:
-        tmp.unlink(missing_ok=True)
-        raise RuntimeError(f"OTS sanitize failed for {tmp}:\n{proc.stderr}")
+        raise RuntimeError(f"OTS sanitize failed for {input_path}:\n{proc.stderr}")
 
-    os.replace(tmp, p)
+
+def save_font(font: TTFont, p: Path, *, subset: list[int] | None = None) -> None:
+    if subset:
+        opts = subset.Options(flavor="woff2")
+        s = subset.Subsetter(options=opts)
+        s.populate(unicodes=subset)
+        s.subset(font)
+
+    tmp = p.with_suffix(".tmp.woff2")
+    font.save(str(tmp))
+
+    try:
+        ots_sanitize_file(tmp)
+        os.replace(tmp, p)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def _clean(v: float, ndigits: int = 5) -> float:
