@@ -101,7 +101,7 @@ function renderDisplayMath(math: string) {
   const opts: SettingsOptions = {
     displayMode: true,
     strict: "error",
-    minRuleThickness: 0.06,
+    minRuleThickness: 0.05,
     macros,
   };
 
