@@ -3,4 +3,4 @@ to: icml
 standalone: true
 filters:
   - filters/icml.js
-  - filters/hyphens.js
+  - filters/hyphens.lua

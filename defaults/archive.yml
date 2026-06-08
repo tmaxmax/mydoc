@@ -7,6 +7,6 @@ css:
   - static/archive.css
 filters:
   - filters/archive.lua
-  - filters/hyphens.js
+  - filters/hyphens.lua
 include-after-body:
   - templates/share.html
