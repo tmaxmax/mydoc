@@ -196,6 +196,10 @@ code {
   padding: 0.8em;
 }
 
+.katex .frac-line {
+  border-radius: 0.5em;
+}
+
 .no-wrap {
   white-space: nowrap;
 }

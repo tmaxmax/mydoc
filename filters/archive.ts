@@ -101,6 +101,7 @@ function renderDisplayMath(math: string) {
     const dom = katex.__renderToDomTree(math, {
       displayMode: true,
       strict: "error",
+      minRuleThickness: 0.06,
       macros: { "\\brk": createBrkMacro(brk) },
     });
 
