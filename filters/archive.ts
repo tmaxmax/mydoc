@@ -12,6 +12,7 @@ import type {
   TextFont,
   MacroDefinition,
   Token,
+  MacroMap,
 } from "katex";
 import fontMetricsData from "katex/src/fontMetricsData.js";
 import pandoc from "pandoc-filter";
@@ -19,6 +20,7 @@ import hljs from "highlight.js";
 import getStdin from "get-stdin";
 
 const displayMathFontSizeEm = 1.05; // keep in sync with CSS
+const macros: MacroMap = {};
 
 const action: pandoc.FilterActionAsync = (value, format, meta) => {
   if (value.t === "Math") {
@@ -31,6 +33,7 @@ const action: pandoc.FilterActionAsync = (value, format, meta) => {
         : katex.renderToString(math.trim(), {
             strict: "error",
             output: "htmlAndMathml",
+            macros,
           });
 
     return pandoc.RawInline("html", html);
@@ -98,12 +101,16 @@ function renderDisplayMath(math: string) {
   let html = "";
 
   for (let brk = 0; brk <= maxBrk; brk++) {
+    macros["\\brk"] = createBrkMacro(brk);
+
     const dom = katex.__renderToDomTree(math, {
       displayMode: true,
       strict: "error",
       minRuleThickness: 0.06,
-      macros: { "\\brk": createBrkMacro(brk) },
+      macros,
     });
+
+    delete macros["\\brk"];
 
     if (maxWidth || brk < maxBrk) {
       let minWidth = 0;
