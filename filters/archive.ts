@@ -13,6 +13,7 @@ import type {
   MacroDefinition,
   Token,
   MacroMap,
+  SettingsOptions,
 } from "katex";
 import fontMetricsData from "katex/src/fontMetricsData.js";
 import pandoc from "pandoc-filter";
@@ -97,20 +98,19 @@ function renderDisplayMath(math: string) {
     maxBrk = Math.max(maxBrk, a ? Number.parseInt(a) : 1);
   }
 
-  let maxWidth = 0;
-  let html = "";
+  const opts: SettingsOptions = {
+    displayMode: true,
+    strict: "error",
+    minRuleThickness: 0.06,
+    macros,
+  };
 
-  for (let brk = 0; brk <= maxBrk; brk++) {
+  macros["\\brk"] = createBrkMacro(0);
+  let html = katex.renderToString(math, { ...opts, output: "mathml" });
+
+  for (let brk = 0, maxWidth = 0; brk <= maxBrk; brk++) {
     macros["\\brk"] = createBrkMacro(brk);
-
-    const dom = katex.__renderToDomTree(math, {
-      displayMode: true,
-      strict: "error",
-      minRuleThickness: 0.06,
-      macros,
-    });
-
-    delete macros["\\brk"];
+    const dom = katex.__renderToHTMLTree(math, opts);
 
     if (maxWidth || brk < maxBrk) {
       let minWidth = 0;
@@ -128,6 +128,8 @@ function renderDisplayMath(math: string) {
 
     html += dom.toMarkup();
   }
+
+  delete macros["\\brk"];
 
   return html;
 }

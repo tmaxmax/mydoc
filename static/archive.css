@@ -266,6 +266,7 @@ details summary {
   /* TODO: Avoid breaking images and code blocks across pages. */
 }
 
+.katex:has(~ .katex-display),
 #dark-mode input,
 #dark-mode legend,
 #dark-mode label span,
