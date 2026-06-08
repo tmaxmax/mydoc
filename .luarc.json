@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+  "runtime.version": "Lua 5.4",
+  "workspace.library": [
+    ".vscode/lua"
+  ],
+  "workspace.checkThirdParty": false,
+  "diagnostics.globals": [
+    "FORMAT",
+    "PANDOC_READER_OPTIONS",
+    "PANDOC_WRITER_OPTIONS",
+    "PANDOC_VERSION",
+    "PANDOC_API_VERSION",
+    "PANDOC_SCRIPT_FILE",
+    "PANDOC_STATE",
+    "pandoc",
+    "lpeg",
+    "re"
+  ],
+  "hint.enable": true
+}

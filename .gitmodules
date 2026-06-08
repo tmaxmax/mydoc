@@ -1,0 +1,3 @@
+[submodule ".vscode/lua/pandoc"]
+	path = .vscode/lua/pandoc
+	url = https://github.com/rnwst/pandoc-lua-types
