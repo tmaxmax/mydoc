@@ -163,6 +163,16 @@ code {
   font-feature-settings: "calt" 1;
 }
 
+strong {
+  font-weight: 670;
+}
+
+math,
+math * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .katex {
   font-size: 0.96em;
 }
