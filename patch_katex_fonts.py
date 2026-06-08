@@ -268,8 +268,8 @@ def ots_sanitize_file(input_path: Path) -> None:
         raise RuntimeError(f"OTS sanitize failed for {input_path}:\n{proc.stderr}")
 
 
-def save_font(font: TTFont, p: Path, *, subset: list[int] | None = None) -> None:
-    if subset:
+def save_font(font: TTFont, p: Path, *, unicodes: list[int] | None = None) -> None:
+    if unicodes:
         opts = subset.Options(flavor="woff2")
         s = subset.Subsetter(options=opts)
         s.populate(unicodes=subset)
