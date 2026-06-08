@@ -277,7 +277,7 @@ const mathFonts = {
   mathbf: "Main-Bold",
   mathrm: "Main-Regular",
   mathit: "Main-Italic",
-  mathnormal: "Main-Italic",
+  mathnormal: "Math-Italic",
   mathbb: "AMS-Regular",
   mathcal: "Caligraphic-Regular",
   mathfrak: "Fraktur-Regular",
@@ -326,9 +326,8 @@ function read(file: string) {
   return fs.readFileSync(file, { encoding: "utf-8" });
 }
 
-function metaList(meta: pandoc.PandocMetaMap, key: string) {
-  const v = meta[key];
-  return (meta[key] = v?.t === "MetaList" ? v : { t: "MetaList", c: v == null ? [] : [v] }).c;
+function metaList(v?: pandoc.PandocMetaValue) {
+  return v?.t === "MetaList" ? v : ({ t: "MetaList", c: v == null ? [] : [v] } satisfies pandoc.PandocMetaValue);
 }
 
 const doc = await pandoc.filter(JSON.parse(await getStdin()), action, process.argv.length > 2 ? process.argv[2] : "");
@@ -349,7 +348,9 @@ if (responsiveMathContainerQueries.length) {
   }`).toArray().join('\n')}
 </style>`
 
-  metaList(doc.meta, "header-includes").push({ t: "MetaBlocks", c: [pandoc.RawBlock("html", style)] });
+  const header = metaList(doc.meta["header-includes"]);
+  header.c.push({ t: "MetaBlocks", c: [pandoc.RawBlock("html", style)] });
+  doc.meta["header-includes"] = header;
 }
 
 process.stdout.write(JSON.stringify(doc));
