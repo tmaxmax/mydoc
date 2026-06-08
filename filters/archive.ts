@@ -17,9 +17,7 @@ import fontMetricsData from "katex/src/fontMetricsData.js";
 import pandoc from "pandoc-filter";
 import hljs from "highlight.js";
 import getStdin from "get-stdin";
-import { crc32 } from "zlib";
 
-const responsiveEqCSS: string[] = [];
 const displayMathFontSizeEm = 1.05; // keep in sync with CSS
 
 const action: pandoc.FilterActionAsync = (value, format, meta) => {
@@ -88,9 +86,9 @@ function getInlineContent(value: pandoc.AnyElt) {
   }
 }
 
-function renderDisplayMath(math: string) {
-  const hash = crc32(math);
+const responsiveMathContainerQueries: { minWidth: number; maxWidth: number }[] = [];
 
+function renderDisplayMath(math: string) {
   let maxBrk = 0;
   for (const [, a] of math.matchAll(/\\brk(?:\[(\d+)?(?:,(\d+)?)?\])?/g)) {
     maxBrk = Math.max(maxBrk, a ? Number.parseInt(a) : 1);
@@ -106,27 +104,21 @@ function renderDisplayMath(math: string) {
       macros: { "\\brk": createBrkMacro(brk) },
     });
 
-    const minWidth = Math.round(width(dom, displayMathFontSizeEm) + 1);
-    if (maxWidth && minWidth >= maxWidth) {
-      throw new Error(`Breakpoint ${brk} gives wider equation`, { cause: math });
-    }
-
     if (maxWidth || brk < maxBrk) {
-      const id = `req-${hash}-${brk}`;
-      responsiveEqCSS.push(/* css */ `
-#${id} {
-  display: none;
-}
-@container main (${brk < maxBrk ? `${minWidth}em <=` : ""} width ${maxWidth > 0 ? `< ${maxWidth}em` : ""}) {
-  #${id} {
-    display: block;
-  }
-}`);
-      dom.setAttribute("id", id);
+      let minWidth = 0;
+      if (brk < maxBrk) {
+        minWidth = Math.round(width(dom, displayMathFontSizeEm) + 1);
+        if (maxWidth && minWidth >= maxWidth) {
+          throw new Error(`Breakpoint ${brk} gives wider equation`, { cause: math });
+        }
+      }
+
+      dom.classes.push("req", `req-${responsiveMathContainerQueries.length}`);
+      responsiveMathContainerQueries.push({ minWidth, maxWidth });
+      maxWidth = minWidth;
     }
 
     html += dom.toMarkup();
-    maxWidth = minWidth;
   }
 
   return html;
@@ -330,8 +322,23 @@ function getMetaList(v?: pandoc.PandocMetaValue) {
 
 const doc = await pandoc.filter(JSON.parse(await getStdin()), action, process.argv.length > 2 ? process.argv[2] : "");
 
-if (responsiveEqCSS.length) {
-  const block = pandoc.RawBlock("html", `<style>${responsiveEqCSS.join("")}</style>`);
+if (responsiveMathContainerQueries.length) {
+  const queries = Map.groupBy(
+    responsiveMathContainerQueries.map((_, i) => i),
+    (i) => {
+      const { minWidth: min, maxWidth: max } = responsiveMathContainerQueries[i];
+      return `(${min ? `${min}em <= ` : ""}width${max ? ` < ${max}em` : ""})`;
+    },
+  );
+  // prettier-ignore
+  const style = /* html */ `<style>
+  .req { display: none; }
+  ${queries.entries().map(([query, indexes]) => /* css */ `@container main ${query} {
+    ${indexes.map((i) => `.req-${i}`).join(',')} { display: block; }
+  }`).toArray().join('\n')}
+</style>`
+
+  const block = pandoc.RawBlock("html", style);
   const header = getMetaList(doc.meta["header-includes"]);
   header.c.push({ t: "MetaBlocks", c: [block] });
   doc.meta["header-includes"] = header;
