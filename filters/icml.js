@@ -26,7 +26,7 @@ const alignments = new Map();
 pandoc.stdio(async (value, format, meta) => {
   if (value.t === "Math") {
     const [type, math] = value.c;
-    const exToPx = 7;
+    const exToPx = 5.665;
     const svg = await mathjax.typeset({
       math,
       format: type.t === "DisplayMath" ? "TeX" : "inline-TeX",
@@ -51,8 +51,8 @@ pandoc.stdio(async (value, format, meta) => {
       }
     }
 
-    $svg.attr("width", `${width * 30}px`);
-    $svg.attr("height", `${height * 30}px`);
+    $svg.attr("width", `${width * 40}px`);
+    $svg.attr("height", `${height * 40}px`);
 
     const resvg = new Resvg($.html($svg), null);
     const data = resvg.render().asPng().toString("base64");
