@@ -20,7 +20,7 @@ from fontTools import subset
 
 
 def main():
-    static_dir = Path("static")
+    fonts_dir = Path("fonts")
     katex_dir = Path("node_modules") / "katex"
     out_dir = Path("out")
 
@@ -28,13 +28,13 @@ def main():
     uppercase = range(0x41, 0x5b)
     alnum = [uppercase, range(0x61, 0x7B), 0x03C0, 0x03BC, range(0x30, 0x3A)]
     
-    garamond_math_path = static_dir / "garamond-math.otf"
+    garamond_math_path = fonts_dir / "garamond-math.otf"
     garamond_math_feature_tags = {'ss07': 1, 'ss08': 1, 'ss09': 1}
 
     patch_sets = {
         "Math-Italic": [
             Patch(
-                source_font=static_dir / "cormorant-garamond-italic.ttf",
+                source_font=fonts_dir / "cormorant-garamond-italic.ttf",
                 axis_limits={'wght': 570},
                 feature_tags={'ss03': 1, 'lnum': 1, 'calt': 1, 'kern': 1},
                 codepoints=alnum, 
@@ -42,7 +42,7 @@ def main():
         ],
         "Main-Regular": [
             Patch(
-                source_font=static_dir / "eb-garamond.ttf",
+                source_font=fonts_dir / "eb-garamond.ttf",
                 axis_limits={'wght': 400},
                 feature_tags={'liga': 1, "kern": 1},
                 codepoints=alnum,

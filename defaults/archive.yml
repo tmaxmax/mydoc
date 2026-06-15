@@ -1,10 +1,9 @@
 to: html5
 standalone: true
-embed-resources: true
 template: templates/archive.html
 syntax-highlighting: none
 css:
-  - static/archive.css
+  - /.assets/archive.css
 filters:
   - filters/archive.lua
   - filters/hyphens.lua

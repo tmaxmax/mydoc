@@ -5,15 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>$title$</title>
     $if(math)$
-    <link rel="stylesheet" href="out/katex.css" />
+    <link rel="stylesheet" href="/.assets/katex.css" />
     $endif$
     $for(css)$
     <link rel="stylesheet" href="$css$" />
     $endfor$
     <noscript>
-      <link rel="stylesheet" href="static/archive-noscript.css" />
+      <link rel="stylesheet" href="/.assets/archive-noscript.css" />
     </noscript>
+    $for(header-includes)$
     $header-includes$
+    $endfor$
   </head>
   <body>
     $for(include-before)$
@@ -33,7 +35,7 @@
     <main>
 $body$
     </main>
-    <script src="static/archive.js"></script>
+    <script src="/.assets/me/archive.js"></script>
     $for(include-after)$
     $include-after$
     $endfor$

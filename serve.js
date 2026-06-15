@@ -20,7 +20,7 @@ if (!MD_FILE) {
 }
 
 const DEFAULTS = "defaults/archive.yml";
-const PORT = 8080;
+const PORT = Number.parseInt(process.env.PORT) || 8080;
 
 let html;
 async function build(signal, ...metadata) {
