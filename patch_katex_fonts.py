@@ -87,7 +87,7 @@ def main():
 
     css = (katex_dir / "dist" / "katex.min.css").read_text(encoding='utf-8')
     css = re.sub(r",url\(fonts\/\S+\.(woff|ttf)\) format\(\"(woff|truetype)\"\)", "", css)
-    css = re.sub(r"fonts(\/KaTeX_(\S+)\.woff2)", lambda m: "." + m[1] if m[2] in patch_sets else m[0], css)
+    css = re.sub(r"fonts(\/KaTeX_(\S+)\.woff2)", r"./\1", css)
 
     for base_font_name, patches in patch_sets.items():
         base_font_path = katex_dir / "dist" / "fonts" / f"KaTeX_{base_font_name}.woff2"
