@@ -10,7 +10,6 @@ import (
 	"io"
 	"io/fs"
 	"iter"
-	"log/slog"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -24,7 +23,7 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		slog.Error("build failed", "err", err)
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -254,14 +253,17 @@ var buildDir = sync.OnceValue(func() string {
 func pandoc(ctx context.Context, inPath, outPath string) error {
 	cmd := exec.CommandContext(ctx, "pandoc", "-d", filepath.Join("defaults", "archive.yml"), inPath, "-o", outPath)
 	cmd.Dir = buildDir()
-	return cmd.Run()
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("%w\n%s", err, string(out))
+	}
+	return nil
 }
 
 func copyKatexFonts(ctx context.Context, outDir string) error {
 	cmd := exec.CommandContext(ctx, "python3", "patch_katex_fonts.py")
 	cmd.Dir = buildDir()
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("patch: %w", err)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("patch: %w\n%s", err, string(out))
 	}
 
 	fonts, err := filepath.Glob(filepath.Join(buildDir(), "node_modules", "katex", "dist", "fonts", "*"))
