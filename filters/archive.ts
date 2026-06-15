@@ -353,4 +353,8 @@ if (responsiveMathContainerQueries.length) {
   doc.meta["header-includes"] = header;
 }
 
+if (sizings) {
+  doc.meta["math"] = pandoc.rawToMeta(true);
+}
+
 process.stdout.write(JSON.stringify(doc));
