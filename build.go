@@ -83,10 +83,13 @@ func run() error {
 		if err := os.MkdirAll(assetsDir, 0o755); err != nil {
 			return fmt.Errorf("create assets dir: %w", err)
 		}
-		if err := copyStatic(filepath.Join(outDir, ".assets")); err != nil {
+		if err := copyDir(filepath.Join(buildDir(), "static"), assetsDir); err != nil {
 			return fmt.Errorf("copy fonts: %w", err)
 		}
-		if err := copyKatexFonts(filepath.Join(outDir, ".assets")); err != nil {
+		if err := copyDir(filepath.Join(inDir, ".assets"), assetsDir); err != nil {
+			return fmt.Errorf("copy fonts: %w", err)
+		}
+		if err := copyKatexFonts(assetsDir); err != nil {
 			return fmt.Errorf("copy KaTeX fonts: %w", err)
 		}
 	} else {
@@ -294,11 +297,14 @@ func copyKatexFonts(outDir string) error {
 	return nil
 }
 
-func copyStatic(outDir string) error {
-	static, err := os.OpenRoot(filepath.Join(buildDir(), "static"))
+func copyDir(inDir, outDir string) error {
+	dir, err := os.OpenRoot(inDir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return fmt.Errorf("open static: %w", err)
 	}
 
-	return os.CopyFS(outDir, static.FS())
+	return os.CopyFS(outDir, dir.FS())
 }
