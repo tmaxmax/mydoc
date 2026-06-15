@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-yaml"
@@ -21,7 +22,7 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -42,27 +43,36 @@ func run() error {
 		return fmt.Errorf("parse CLI: %w", err)
 	}
 
-	inDir = filepath.Clean(inDir)
+	inDir, err := filepath.Abs(inDir)
+	if err != nil {
+		return fmt.Errorf("get absolute input path: %w", err)
+	}
 
 	paths := map[string][]string{}
 	if err := filepath.WalkDir(inDir, func(path string, d fs.DirEntry, err error) error {
-		if err == nil && !d.IsDir() && !strings.HasPrefix(path, ".") {
+		if err != nil {
+			return err
+		}
+
+		if strings.HasPrefix(d.Name(), ".") {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+		} else if !d.IsDir() {
 			dir := filepath.Dir(path)
 			paths[dir] = append(paths[dir], path)
 		}
-		return err
+
+		return nil
 	}); err != nil {
 		return fmt.Errorf("read input dir: %w", err)
 	}
 
 	var changed []Change
 
-	err := patchKatexFonts(ctx)
-	if err != nil {
-		return fmt.Errorf("patch KaTeX: %w", err)
-	}
-
 	if full {
+		fmt.Fprintln(os.Stderr, "FULL BUILD")
+
 		changed = changed[:0]
 		for _, files := range paths {
 			for _, file := range files {
@@ -75,22 +85,36 @@ func run() error {
 
 		assetsDir := filepath.Join(outDir, ".assets")
 
+		fmt.Fprintln(os.Stderr, "Clear output dir...")
 		if err := os.RemoveAll(outDir); err != nil {
 			return fmt.Errorf("reset output: %w", err)
 		}
 		if err := os.MkdirAll(assetsDir, 0o755); err != nil {
 			return fmt.Errorf("create assets dir: %w", err)
 		}
+
+		fmt.Fprintln(os.Stderr, "Patch KaTeX fonts...")
+		if err := patchKatexFonts(ctx); err != nil {
+			return fmt.Errorf("patch KaTeX: %w", err)
+		}
+
+		fmt.Fprintln(os.Stderr, "Copy build static assets...")
 		if err := copyDir("static", assetsDir); err != nil {
 			return fmt.Errorf("copy fonts: %w", err)
 		}
-		if err := copyDir(filepath.Join(inDir, ".assets"), assetsDir); err != nil {
-			return fmt.Errorf("copy fonts: %w", err)
-		}
+
+		fmt.Fprintln(os.Stderr, "Copy KaTeX assets...")
 		if err := copyKatexFonts(assetsDir); err != nil {
 			return fmt.Errorf("copy KaTeX fonts: %w", err)
 		}
 	} else {
+		fmt.Fprintln(os.Stderr, "DIFF BUILD")
+
+		fmt.Fprintln(os.Stderr, "Patch KaTeX fonts...")
+		if err := patchKatexFonts(ctx); err != nil {
+			return fmt.Errorf("patch KaTeX: %w", err)
+		}
+
 		for change := range changes(os.Stdin, &err) {
 			if !strings.HasPrefix(change.Path, ".") {
 				changed = append(changed, change)
@@ -112,6 +136,8 @@ func run() error {
 			outPath = filepath.Join(outDir, change.Path)
 		}
 
+		fmt.Fprintf(os.Stderr, "Handle %s %s...\n", change.Status, change.Path)
+
 		switch change.Status {
 		case StatusModified:
 			err = modify(inPath, outPath)
@@ -120,9 +146,11 @@ func run() error {
 		}
 
 		if err != nil {
-			return fmt.Errorf("handle %s change for %q: %w", change.Status, change.Path, err)
+			return fmt.Errorf("Handle %s change for %q: %w", change.Status, change.Path, err)
 		}
 	}
+
+	fmt.Fprintln(os.Stderr, "SUCCESS")
 
 	return nil
 }
@@ -275,6 +303,12 @@ func copyKatexFonts(outDir string) error {
 	if err != nil {
 		return fmt.Errorf("read patched: %w", err)
 	}
+
+	fonts = slices.DeleteFunc(fonts, func(font string) bool {
+		return slices.ContainsFunc(patchedFonts, func(patched string) bool {
+			return filepath.Base(font) == filepath.Base(patched)
+		})
+	})
 
 	for _, font := range append(fonts, patchedFonts...) {
 		if ext := filepath.Ext(font); ext != ".woff2" && ext != ".css" {
