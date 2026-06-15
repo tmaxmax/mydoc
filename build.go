@@ -14,9 +14,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"strings"
-	"sync"
 
 	"github.com/goccy/go-yaml"
 )
@@ -83,7 +81,7 @@ func run() error {
 		if err := os.MkdirAll(assetsDir, 0o755); err != nil {
 			return fmt.Errorf("create assets dir: %w", err)
 		}
-		if err := copyDir(filepath.Join(buildDir(), "static"), assetsDir); err != nil {
+		if err := copyDir("static", assetsDir); err != nil {
 			return fmt.Errorf("copy fonts: %w", err)
 		}
 		if err := copyDir(filepath.Join(inDir, ".assets"), assetsDir); err != nil {
@@ -251,14 +249,8 @@ func isMetadataEnd(s string) bool {
 	return s == "---" || s == "..."
 }
 
-var buildDir = sync.OnceValue(func() string {
-	_, file, _, _ := runtime.Caller(0)
-	return filepath.Dir(file)
-})
-
 func pandoc(ctx context.Context, inPath, outPath string) error {
 	cmd := exec.CommandContext(ctx, "pandoc", "-d", filepath.Join("defaults", "archive.yml"), inPath, "-o", outPath)
-	cmd.Dir = buildDir()
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("%w\n%s", err, string(out))
 	}
@@ -267,7 +259,6 @@ func pandoc(ctx context.Context, inPath, outPath string) error {
 
 func patchKatexFonts(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, "python3", "patch_katex_fonts.py")
-	cmd.Dir = buildDir()
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("patch: %w\n%s", err, string(out))
 	}
@@ -275,12 +266,12 @@ func patchKatexFonts(ctx context.Context) error {
 }
 
 func copyKatexFonts(outDir string) error {
-	fonts, err := filepath.Glob(filepath.Join(buildDir(), "node_modules", "katex", "dist", "fonts", "*"))
+	fonts, err := filepath.Glob(filepath.Join("node_modules", "katex", "dist", "fonts", "*"))
 	if err != nil {
 		return fmt.Errorf("read unpatched: %w", err)
 	}
 
-	patchedFonts, err := filepath.Glob(filepath.Join(buildDir(), "out", "*"))
+	patchedFonts, err := filepath.Glob(filepath.Join("out", "*"))
 	if err != nil {
 		return fmt.Errorf("read patched: %w", err)
 	}
