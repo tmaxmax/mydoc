@@ -58,7 +58,11 @@ func run() error {
 	}
 
 	var changed []Change
-	var err error
+
+	err := patchKatexFonts(ctx)
+	if err != nil {
+		return fmt.Errorf("patch KaTeX: %w", err)
+	}
 
 	if full {
 		changed = changed[:0]
@@ -82,10 +86,9 @@ func run() error {
 		if err := copyStatic(filepath.Join(outDir, ".assets")); err != nil {
 			return fmt.Errorf("copy fonts: %w", err)
 		}
-		if err := copyKatexFonts(ctx, filepath.Join(outDir, ".assets")); err != nil {
+		if err := copyKatexFonts(filepath.Join(outDir, ".assets")); err != nil {
 			return fmt.Errorf("copy KaTeX fonts: %w", err)
 		}
-
 	} else {
 		for change := range changes(os.Stdin, &err) {
 			if !strings.HasPrefix(change.Path, ".") {
@@ -259,13 +262,16 @@ func pandoc(ctx context.Context, inPath, outPath string) error {
 	return nil
 }
 
-func copyKatexFonts(ctx context.Context, outDir string) error {
+func patchKatexFonts(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, "python3", "patch_katex_fonts.py")
 	cmd.Dir = buildDir()
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("patch: %w\n%s", err, string(out))
 	}
+	return nil
+}
 
+func copyKatexFonts(outDir string) error {
 	fonts, err := filepath.Glob(filepath.Join(buildDir(), "node_modules", "katex", "dist", "fonts", "*"))
 	if err != nil {
 		return fmt.Errorf("read unpatched: %w", err)
