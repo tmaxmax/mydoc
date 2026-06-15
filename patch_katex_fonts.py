@@ -24,6 +24,8 @@ def main():
     katex_dir = Path("node_modules") / "katex"
     out_dir = Path("out")
 
+    out_dir.mkdir(exist_ok=True)
+
     # [0-9A-Za-zπμ]
     uppercase = range(0x41, 0x5b)
     alnum = [uppercase, range(0x61, 0x7B), 0x03C0, 0x03BC, range(0x30, 0x3A)]
@@ -87,7 +89,7 @@ def main():
 
     css = (katex_dir / "dist" / "katex.min.css").read_text(encoding='utf-8')
     css = re.sub(r",url\(fonts\/\S+\.(woff|ttf)\) format\(\"(woff|truetype)\"\)", "", css)
-    css = re.sub(r"fonts(\/KaTeX_(\S+)\.woff2)", r"./\1", css)
+    css = re.sub(r"fonts(\/KaTeX_(\S+)\.woff2)", r".\1", css)
 
     for base_font_name, patches in patch_sets.items():
         base_font_path = katex_dir / "dist" / "fonts" / f"KaTeX_{base_font_name}.woff2"
