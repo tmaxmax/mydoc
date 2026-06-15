@@ -4,7 +4,8 @@ import { promisify } from "util";
 import chokidar from "chokidar";
 import { WebSocketServer } from "ws";
 import { gzip as gzipCb } from "zlib";
-import { createReadStream } from "fs";
+import { open } from "fs/promises";
+import path from "path";
 
 function toMB(n) {
   return (n / (1024 * 1024)).toFixed(3);
@@ -56,16 +57,21 @@ if (!html) {
 
 const server = createServer(async (req, res) => {
   try {
-    if (req.url === "/favicon.ico") {
-      res.writeHead(404);
-      return;
-    }
-
-    if (req.url === "/me/share.js") {
-      const file = createReadStream("static/share.js");
-      file.on("error", () => res.writeHead(404));
-      res.writeHead(200, { "content-type": "application/javascript" });
-      file.pipe(res);
+    if (req.url.startsWith("/.assets/")) {
+      const url = new URL(req.url.replace(/^\/\.assets/), "http://localhost");
+      const filepath = path.normalize(url.pathname).replace(/^(\.\.\/)+/, "");
+      const [file, contentType] = await tryOpenFile(
+        path.join("out", filepath),
+        path.join("node_modules", "katex", "dist", "fonts", filepath),
+        path.join("static", filepath),
+      );
+      if (file) {
+        file.on("error", () => res.writeHead(500));
+        res.writeHead(200, { "content-type": contentType });
+        file.pipe(res);
+      } else {
+        res.writeHead(404);
+      }
 
       return;
     }
@@ -147,3 +153,27 @@ watcher.on("change", (path) => {
 watcher.on("error", (err) => console.error("Watcher error:", err));
 
 server.listen(PORT, () => console.info(`Server running at http://localhost:${PORT}`));
+
+async function tryOpenFile(...paths) {
+  const mimeType = {
+    ".ico": "image/x-icon",
+    ".html": "text/html",
+    ".js": "text/javascript",
+    ".json": "application/json",
+    ".css": "text/css",
+    ".woff2": "font/woff2",
+  };
+
+  for (const p of paths) {
+    try {
+      const f = await open(p);
+      return [f.createReadStream(), mimeType[path.extname(p)] || "application/octet-stream"];
+    } catch (err) {
+      if (err.code !== "ENOENT") {
+        throw err;
+      }
+    }
+  }
+
+  return [null, null];
+}
