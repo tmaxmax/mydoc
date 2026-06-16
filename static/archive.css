@@ -347,8 +347,6 @@ details summary {
   content: "";
   background-color: var(--icon-color, var(--text));
   display: inline-block;
-  mask: var(--icon) no-repeat 50% 50%;
-  mask-size: cover;
   width: 1em;
   height: 1em;
   margin-bottom: -0.165rem;
@@ -517,6 +515,16 @@ details summary {
   --code-hue-5-2: light-dark(#c91243, #be5046);
   --code-hue-6: light-dark(#986801, #d19a66);
   --code-hue-6-2: light-dark(#c18401, #e6c07b);
+
+  --icon-dark: url("./icon/moon.svg");
+  --icon-light: url("./icon/sun.svg");
+  --icon-system-theme: url("./icon/contrast.svg");
+  --icon-share: url("./icon/share.svg");
+  --icon-share-success: url("./icon/success.svg");
+  --icon-share-error: url("./icon/error.svg");
+  --icon-share-copy: url("./icon/copy.svg");
+  --icon-share-file: url("./icon/file.svg");
+  --icon-share-folder: url("./icon/folder.svg");
 }
 
 pre code.hljs {
