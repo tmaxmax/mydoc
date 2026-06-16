@@ -23,6 +23,8 @@ import getStdin from "get-stdin";
 const displayMathFontSizeEm = 1.05; // keep in sync with CSS
 const macros: MacroMap = {};
 
+let hasCode = false;
+
 const action: pandoc.FilterActionAsync = (value, format, meta) => {
   if (value.t === "Math") {
     initKatex();
@@ -41,6 +43,8 @@ const action: pandoc.FilterActionAsync = (value, format, meta) => {
   }
 
   if (value.t === "CodeBlock") {
+    hasCode = true;
+
     const [[, [language] = []], code] = value.c;
     const html = `<pre><code class="hljs hljs-${language}">${hljs.highlight(code, { language }).value}</code></pre>`;
 
@@ -48,6 +52,8 @@ const action: pandoc.FilterActionAsync = (value, format, meta) => {
   }
 
   if (value.t === "Code") {
+    hasCode = true;
+
     const [, code] = value.c;
     const html = `<code class="hljs">${hljs.highlight(code, { language: "plaintext" }).value}</code>`;
 
@@ -355,6 +361,10 @@ if (responsiveMathContainerQueries.length) {
 
 if (sizings) {
   doc.meta["math"] = pandoc.rawToMeta(true);
+}
+
+if (hasCode) {
+  doc.meta["code"] = pandoc.rawToMeta(true);
 }
 
 process.stdout.write(JSON.stringify(doc));
