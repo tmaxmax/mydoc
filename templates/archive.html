@@ -7,19 +7,18 @@
     $if(math)$
     <link rel="preload" href="/.assets/KaTeX_AMS-Regular.woff2" as="font" type="font/woff2" />
     <link rel="preload" href="/.assets/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" />
-    <link rel="stylesheet" href="/.assets/katex.css" />
+    <link rel="preload" href="/.assets/katex.css" as="style" />
     $endif$
     <link rel="preload" href="/.assets/eb-garamond.woff2" as="font" type="font/woff2" />
     <link rel="preload" href="/.assets/eb-garamond-italic.woff2" as="font" type="font/woff2" />
     $if(code)$
     <link rel="preload" href="/.assets/monaspace.woff2" as="font" type="font/woff2" />
     $endif$
-    $for(css)$
-    <link rel="stylesheet" href="$css$" />
-    $endfor$
+    <link rel="preload" href="/.assets/archive.css" as="style" />
     <noscript>
-      <link rel="stylesheet" href="/.assets/archive-noscript.css" />
+      <link rel="preload" href="/.assets/archive-noscript.css" as="style" />
     </noscript>
+    ${critical-css()}
     $for(header-includes)$
     $header-includes$
     $endfor$
@@ -43,6 +42,14 @@
 $body$
     </main>
     <script src="/.assets/archive.js"></script>
+    <link rel="stylesheet" href="/.assets/archive.css" />
+    <noscript>
+      <link rel="stylesheet" href="/.assets/archive-noscript.css" />
+    </noscript>
+    $if(math)$
+    <link rel="stylesheet" href="/.assets/katex.css" />
+    $endif$
+    ${share()}
     $for(include-after)$
     $include-after$
     $endfor$

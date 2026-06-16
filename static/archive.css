@@ -22,42 +22,16 @@
   font-display: swap;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-*:not(dialog) {
-  margin: 0;
-}
-
 html {
   font-family: "EB Garamond", serif;
   font-optical-sizing: auto;
   font-weight: 400;
-  font-size: clamp(125%, calc(125% + 4 * (100vw - 390px) / 320), 150%);
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: subpixel-antialiased;
-  background-color: var(--bg);
-  color: var(--text);
-}
-
-body {
-  padding: calc(env(safe-area-inset-top) + 1rem) calc(env(safe-area-inset-right) + 1rem)
-    calc(env(safe-area-inset-bottom) + 2rem) calc(env(safe-area-inset-left) + 1rem);
-  width: 100%;
-  max-width: 100%;
-  line-height: 1.45;
-}
-
-main {
-  width: 100%;
-  margin: auto;
-  container: main / inline-size;
 }
 
 nav {
+  visibility: visible;
   max-width: calc(650px + 6.8rem);
   display: flex;
   gap: 0.7rem;
@@ -66,13 +40,6 @@ nav {
   position: sticky;
   top: 1rem;
   z-index: 1;
-}
-
-main > *,
-main > details > * {
-  max-width: 650px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 main pre:has(> code) {
@@ -88,30 +55,11 @@ main p:has(.katex-display) {
   margin: 0 auto;
 }
 
-img,
-picture,
-video,
-canvas,
-svg {
-  display: block;
-  max-width: 100%;
-}
-
 input,
 button,
 textarea,
 select {
   font: inherit;
-}
-
-p,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  overflow-wrap: break-word;
 }
 
 main h1:first-of-type,
@@ -172,26 +120,13 @@ strong {
 
 math,
 math * {
+  display: initial;
   user-select: none;
   -webkit-user-select: none;
 }
 
-.katex {
-  font-size: 0.96em;
-}
-
 .katex-display {
   will-change: transform;
-}
-
-.katex-display > .katex {
-  overflow: auto hidden;
-  scrollbar-width: thin;
-}
-
-.katex-display .katex {
-  font-size: 1.05em;
-  padding: 0.15rem;
 }
 
 .katex-display > .katex > .katex-html > .tag {
@@ -493,8 +428,6 @@ details summary {
 }
 
 :root {
-  color-scheme: light dark;
-
   --indent: min(calc(0.7rem + 2.75vw), 1.8rem);
 
   --bg: light-dark(#fffff8, black);

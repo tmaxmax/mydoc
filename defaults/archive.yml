@@ -2,10 +2,6 @@ to: html5
 standalone: true
 template: templates/archive.html
 syntax-highlighting: none
-css:
-  - /.assets/archive.css
 filters:
   - filters/archive.lua
   - filters/hyphens.lua
-include-after-body:
-  - templates/share.html
