@@ -370,7 +370,7 @@ details summary {
 }
 
 #dark-mode [for="dark-system"]::after {
-  /* --icon: var(--icon-system-theme); */
+  --icon: var(--icon-system-theme);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -383,11 +383,11 @@ details summary {
   }
 
   #dark-mode [for="dark-self"]::after {
-    /* --icon: var(--icon-dark); */
+    --icon: var(--icon-dark);
   }
 
   #dark-mode [for="dark-other"]::after {
-    /* --icon: var(--icon-light); */
+    --icon: var(--icon-light);
   }
 
   #dark-mode [for="dark-self"] .light,
@@ -406,11 +406,11 @@ details summary {
   }
 
   #dark-mode [for="dark-self"]::after {
-    /* --icon: var(--icon-light); */
+    --icon: var(--icon-light);
   }
 
   #dark-mode [for="dark-other"]::after {
-    /* --icon: var(--icon-dark); */
+    --icon: var(--icon-dark);
   }
 
   #dark-mode [for="dark-self"] .dark,
