@@ -42,6 +42,39 @@ nav {
   z-index: 1;
 }
 
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: break-word;
+}
+
+main {
+  width: 100%;
+  margin: auto;
+  container: main / inline-size;
+}
+
+main > *,
+main > details > * {
+  visibility: visible;
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 main pre:has(> code) {
   min-width: min(calc(100vw - 2.66rem - env(safe-area-inset-left) - env(safe-area-inset-right)), 650px);
   width: min(calc(100vw - 2.66rem - env(safe-area-inset-left) - env(safe-area-inset-right)), 800px);
@@ -69,7 +102,7 @@ main header:first-of-type {
 
 p {
   text-wrap: pretty;
-  margin: 1.2rem auto;
+  margin: 0.9rem auto;
 }
 
 blockquote {
@@ -125,6 +158,20 @@ math * {
   -webkit-user-select: none;
 }
 
+.katex {
+  font-size: 0.96em;
+}
+
+.katex-display .katex {
+  font-size: 1.05em;
+  padding: 0.15rem;
+}
+
+.katex-display > .katex {
+  overflow: auto hidden;
+  scrollbar-width: thin;
+}
+
 .katex-display {
   will-change: transform;
 }
@@ -168,7 +215,7 @@ blockquote :last-child {
 
 hr {
   color: var(--hr);
-  margin: 2em 0;
+  margin: 2em auto;
 }
 
 a {

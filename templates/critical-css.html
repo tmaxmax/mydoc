@@ -15,25 +15,6 @@
     --text: light-dark(#111, #ddd);
   }
 
-  img,
-  picture,
-  video,
-  canvas,
-  svg {
-    display: block;
-    max-width: 100%;
-  }
-
-  p,
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    overflow-wrap: break-word;
-  }
-
   html {
     font-size: clamp(125%, calc(125% + 4 * (100vw - 390px) / 320), 150%);
     background-color: var(--bg);
@@ -48,39 +29,29 @@
     line-height: 1.45;
   }
 
-  main {
-    width: 100%;
-    margin: auto;
-    container: main / inline-size;
+  main > * {
+    visibility: hidden;
   }
 
-  main > *,
-  main > details > * {
-    max-width: 650px;
+  main > :is(header, h1) {
+    visibility: visible;
     margin-left: auto;
     margin-right: auto;
+    max-width: 650px;
   }
 
   nav {
     visibility: hidden;
+    height: 2.28em;
   }
 
-  math,
-  math * {
-    display: none;
+  main h1:first-of-type,
+  main header:first-of-type {
+    margin-top: 0.5rem;
   }
 
-  .katex {
-    font-size: 0.96em;
-  }
-
-  .katex-display .katex {
-    font-size: 1.05em;
-    padding: 0.15rem;
-  }
-
-  .katex-display > .katex {
-    overflow: auto hidden;
-    scrollbar-width: thin;
+  h1 {
+    margin: 2.2rem auto;
+    font-size: 2.2em;
   }
 </style>
