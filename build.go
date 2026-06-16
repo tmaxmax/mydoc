@@ -31,12 +31,13 @@ func run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	var inDir, outDir string
+	var inDir, outDir, pandocCmd string
 	var full bool
 
 	f := flag.NewFlagSet("mydoc", flag.ContinueOnError)
 	f.StringVar(&inDir, "in", "", "Input directory. All changes are resolved relative to this directory.")
 	f.StringVar(&outDir, "out", "", "Output directory.")
+	f.StringVar(&pandocCmd, "pandoc", "pandoc", "The pandoc command.")
 	f.BoolVar(&full, "full", false, "Trigger a full build.")
 
 	if err := f.Parse(os.Args[1:]); err != nil {
@@ -131,7 +132,7 @@ func run() error {
 		modify, outPath := os.Link, ""
 		if ext := filepath.Ext(change.Path); ext == ".md" {
 			outPath = filepath.Join(outDir, strings.TrimSuffix(change.Path, ext)+".html")
-			modify = func(in, out string) error { return pandoc(ctx, in, out) }
+			modify = func(in, out string) error { return pandoc(ctx, pandocCmd, in, out) }
 		} else {
 			outPath = filepath.Join(outDir, change.Path)
 		}
@@ -140,7 +141,9 @@ func run() error {
 
 		switch change.Status {
 		case StatusModified:
-			err = modify(inPath, outPath)
+			if err = os.MkdirAll(filepath.Dir(outPath), 0o755); err == nil {
+				err = modify(inPath, outPath)
+			}
 		case StatusDeleted:
 			err = os.Remove(outPath)
 		}
@@ -277,8 +280,8 @@ func isMetadataEnd(s string) bool {
 	return s == "---" || s == "..."
 }
 
-func pandoc(ctx context.Context, inPath, outPath string) error {
-	cmd := exec.CommandContext(ctx, "pandoc", "-d", filepath.Join("defaults", "archive.yml"), inPath, "-o", outPath)
+func pandoc(ctx context.Context, pandocCmd, inPath, outPath string) error {
+	cmd := exec.CommandContext(ctx, pandocCmd, "-d", filepath.Join("defaults", "archive.yml"), inPath, "-o", outPath)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("%w\n%s", err, string(out))
 	}
