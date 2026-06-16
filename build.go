@@ -111,11 +111,6 @@ func run() error {
 	} else {
 		fmt.Fprintln(os.Stderr, "DIFF BUILD")
 
-		fmt.Fprintln(os.Stderr, "Patch KaTeX fonts...")
-		if err := patchKatexFonts(ctx); err != nil {
-			return fmt.Errorf("patch KaTeX: %w", err)
-		}
-
 		for change := range changes(os.Stdin, &err) {
 			if !strings.HasPrefix(change.Path, ".") {
 				changed = append(changed, change)
@@ -123,6 +118,13 @@ func run() error {
 		}
 		if err != nil {
 			return fmt.Errorf("read input: %w", err)
+		}
+
+		if slices.ContainsFunc(changed, func(c Change) bool { return filepath.Ext(c.Path) == ".md" }) {
+			fmt.Fprintln(os.Stderr, "Patch KaTeX fonts...")
+			if err := patchKatexFonts(ctx); err != nil {
+				return fmt.Errorf("patch KaTeX: %w", err)
+			}
 		}
 	}
 
