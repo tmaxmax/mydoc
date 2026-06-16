@@ -55,7 +55,7 @@ nav {
   visibility: visible;
   max-width: calc(650px + 6.8rem);
   display: flex;
-  gap: 0.7rem;
+  gap: 0.6rem;
   justify-content: flex-end;
   margin: 0 auto;
   position: sticky;
@@ -291,8 +291,7 @@ details summary {
 #dark-mode input,
 #dark-mode legend,
 #dark-mode label span,
-#share-link span,
-#share-link #share-link-parent {
+#share-link span {
   position: absolute;
   -webkit-clip-path: inset(50%);
   clip-path: inset(50%);
@@ -312,7 +311,7 @@ details summary {
 }
 
 #dark-mode label {
-  padding: 0.37rem 0.8rem;
+  padding: 0.37rem 0.65rem;
   grid-column: 1 / span 1;
   grid-row: 1 / span 1;
 }
@@ -320,9 +319,8 @@ details summary {
 #share-link button {
   --icon: var(--icon-share);
   background: transparent;
-  height: 100%;
   border: none;
-  padding: 0 0.7rem 0 0.3rem;
+  padding: 0.37rem 0.65rem;
 }
 
 #share-link.success button {
@@ -339,19 +337,8 @@ details summary {
   --icon: var(--icon-share-copy);
 }
 
-#share-link label {
-  --icon: var(--icon-share-file);
-  padding-left: 0.7rem;
-  padding-right: 0.12rem;
-}
-
-#share-link:has(:checked) label {
-  --icon: var(--icon-share-folder);
-}
-
 #dark-mode label::after,
-#share-link button::after,
-#share-link label::after {
+#share-link button::after {
   content: "";
   background-color: var(--icon-color, var(--text));
   display: inline-block;
@@ -360,21 +347,6 @@ details summary {
   width: 1em;
   height: 1em;
   margin-bottom: -0.165rem;
-}
-
-#share-link button::before {
-  content: "•";
-  display: inline-block;
-  margin-right: 0.6rem;
-  font-size: 0.8em;
-}
-
-#share-link button::after {
-  margin-bottom: -0.19rem;
-}
-
-#share-link label::after {
-  margin-bottom: -0.205rem;
 }
 
 #dark-mode [for="dark-system"]::after {
@@ -535,8 +507,6 @@ details summary {
   --icon-share-success: url("./icon/success.svg");
   --icon-share-error: url("./icon/error.svg");
   --icon-share-copy: url("./icon/copy.svg");
-  --icon-share-file: url("./icon/file.svg");
-  --icon-share-folder: url("./icon/folder.svg");
 }
 
 pre code.hljs {
