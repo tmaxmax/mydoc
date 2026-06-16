@@ -15,7 +15,7 @@ function toMB(n: number) {
 const gzip = promisify(gzipCb);
 
 if (process.argv.length < 3) {
-  console.error("Usage: node server.js <root-dir>");
+  console.error("Usage: node server.js <files-dir>");
   process.exit(1);
 }
 
