@@ -1,8 +1,6 @@
-@font-face {
+/* @font-face {
   font-family: "EB Garamond";
-  src:
-    local("Garamond"),
-    url("./eb-garamond.woff2") format("woff2-variations");
+  src: url("./eb-garamond.woff2") format("woff2-variations");
   font-style: normal;
   font-weight: 400 800;
   font-display: swap;
@@ -10,9 +8,7 @@
 
 @font-face {
   font-family: "EB Garamond";
-  src:
-    local("Garamond"),
-    url("./eb-garamond-italic.woff2") format("woff2-variations");
+  src: url("./eb-garamond-italic.woff2") format("woff2-variations");
   font-style: italic;
   font-weight: 400 800;
   font-display: swap;
@@ -20,13 +16,11 @@
 
 @font-face {
   font-family: "Monaspace";
-  src:
-    local("Latin Modern Mono"),
-    url("./monaspace.woff2") format("woff2-variations");
+  src: url("./monaspace.woff2") format("woff2-variations");
   font-weight: 200 800;
   font-style: oblique -11deg 0deg;
   font-display: swap;
-}
+} */
 
 *,
 *::before,
