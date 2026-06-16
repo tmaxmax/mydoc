@@ -1,3 +1,27 @@
+@font-face {
+  font-family: "EB Garamond";
+  src: url("./eb-garamond.woff2") format("woff2-variations");
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "EB Garamond";
+  src: url("./eb-garamond-italic.woff2") format("woff2-variations");
+  font-style: italic;
+  font-weight: 400 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Monaspace";
+  src: url("./monaspace.woff2") format("woff2-variations");
+  font-weight: 200 800;
+  font-style: oblique -11deg 0deg;
+  font-display: swap;
+}
+
 *,
 *::before,
 *::after {
@@ -286,7 +310,7 @@ details summary {
 }
 
 #share-link button {
-  --icon: url("/.assets/icon/share.svg");
+  --icon: var(--icon-share);
   background: transparent;
   height: 100%;
   border: none;
@@ -294,27 +318,27 @@ details summary {
 }
 
 #share-link.success button {
-  --icon: url("/.assets/icon/success.svg");
+  --icon: var(--icon-share-success);
   --icon-color: green;
 }
 
 #share-link.error button {
-  --icon: url("/.assets/icon/error.svg");
+  --icon: var(--icon-share-error);
   --icon-color: red;
 }
 
 #share-link.copy button {
-  --icon: url("/.assets/icon/copy.svg");
+  --icon: var(--icon-share-copy);
 }
 
 #share-link label {
-  --icon: url("/.assets/icon/file.svg");
+  --icon: var(--icon-share-file);
   padding-left: 0.7rem;
   padding-right: 0.12rem;
 }
 
 #share-link:has(:checked) label {
-  --icon: url("/.assets/icon/folder.svg");
+  --icon: var(--icon-share-folder);
 }
 
 #dark-mode label::after,
@@ -493,10 +517,6 @@ details summary {
   --code-hue-5-2: light-dark(#c91243, #be5046);
   --code-hue-6: light-dark(#986801, #d19a66);
   --code-hue-6-2: light-dark(#c18401, #e6c07b);
-
-  --icon-dark: url("/.assets/icon/moon.svg");
-  --icon-light: url("/.assets/icon/sun.svg");
-  --icon-system-theme: url("/.assets/icon/contrast.svg");
 }
 
 pre code.hljs {

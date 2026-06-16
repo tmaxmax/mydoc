@@ -4,10 +4,9 @@ template: templates/archive.html
 syntax-highlighting: none
 css:
   - /.assets/archive.css
+  - /.assets/icon/icon.css
 filters:
   - filters/archive.lua
   - filters/hyphens.lua
-include-in-header:
-  - templates/fonts.html
 include-after-body:
   - templates/share.html

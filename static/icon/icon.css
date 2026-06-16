@@ -1,0 +1,11 @@
+:root {
+  --icon-dark: url("./moon.svg");
+  --icon-light: url("./sun.svg");
+  --icon-system-theme: url("./contrast.svg");
+  --icon-share: url("./share.svg");
+  --icon-share-success: url("./success.svg");
+  --icon-share-error: url("./error.svg");
+  --icon-share-copy: url("./copy.svg");
+  --icon-share-file: url("./file.svg");
+  --icon-share-folder: url("./folder.svg");
+}
