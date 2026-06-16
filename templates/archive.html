@@ -4,23 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>$title$</title>
-    ${critical-css.html()}
     $if(math)$
     <link rel="preload" href="/.assets/KaTeX_AMS-Regular.woff2" as="font" type="font/woff2" />
     <link rel="preload" href="/.assets/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" />
-    <link rel="preload" href="/.assets/katex.css" as="style" onload="this.rel='stylesheet'" />
+    <link rel="stylesheet" href="/.assets/katex.css" />
     $endif$
     <link rel="preload" href="/.assets/eb-garamond.woff2" as="font" type="font/woff2" />
     <link rel="preload" href="/.assets/eb-garamond-italic.woff2" as="font" type="font/woff2" />
     $if(code)$
     <link rel="preload" href="/.assets/monaspace.woff2" as="font" type="font/woff2" />
     $endif$
-    <link rel="preload" href="/.assets/archive.css" as="style" onload="this.rel='stylesheet'" />
+    <link rel="stylesheet" href="/.assets/archive.css" />
     <noscript>
-      $if(math)$
-      <link rel="stylesheet" href="/.assets/katex.css" />
-      $endif$
-      <link rel="stylesheet" href="/.assets/archive.css" />
       <link rel="stylesheet" href="/.assets/archive-noscript.css" />
     </noscript>
     $for(header-includes)$

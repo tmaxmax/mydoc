@@ -22,12 +22,33 @@
   font-display: swap;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+*:not(dialog) {
+  margin: 0;
+}
+
 html {
+  font-size: clamp(125%, calc(125% + 4 * (100vw - 390px) / 320), 150%);
   font-family: "EB Garamond", serif;
   font-optical-sizing: auto;
   font-weight: 400;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: subpixel-antialiased;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+body {
+  padding: calc(env(safe-area-inset-top) + 1rem) calc(env(safe-area-inset-right) + 1rem)
+    calc(env(safe-area-inset-bottom) + 2rem) calc(env(safe-area-inset-left) + 1rem);
+  width: 100%;
+  max-width: 100%;
+  line-height: 1.45;
 }
 
 nav {
@@ -119,6 +140,11 @@ h6 {
   line-height: calc(1em + 0.45rem);
   margin: 1.2rem 0;
   font-weight: 600;
+}
+
+main h1:first-of-type,
+main header:first-of-type {
+  margin-top: 0.5rem;
 }
 
 h1 {
@@ -475,6 +501,10 @@ details summary {
 }
 
 :root {
+  color-scheme: light dark;
+
+  --bg: light-dark(#fffff8, black);
+  --text: light-dark(#111, #ddd);
   --indent: min(calc(0.7rem + 2.75vw), 1.8rem);
 
   --bg: light-dark(#fffff8, black);
