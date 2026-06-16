@@ -4,7 +4,7 @@ template: templates/archive.html
 syntax-highlighting: none
 css:
   - /.assets/archive.css
-  - /.assets/icon/icon.css
+  - /.assets/icon.css
 filters:
   - filters/archive.lua
   - filters/hyphens.lua
