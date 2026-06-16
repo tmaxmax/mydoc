@@ -57,7 +57,7 @@ function injectScript(html: string) {
 }
 
 console.info("Building . . .");
-if (!(await build())) process.exit(1);
+if (!(await build(undefined, undefined, true))) process.exit(1);
 
 const server = createServer(async (req, res) => {
   try {
