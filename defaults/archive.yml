@@ -7,7 +7,7 @@ css:
 filters:
   - filters/archive.lua
   - filters/hyphens.lua
-header-includes:
+include-in-header:
   - templates/fonts.html
 include-after-body:
   - templates/share.html
