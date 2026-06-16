@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"embed"
-	_ "embed"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json/jsontext"
@@ -17,6 +16,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 	"log/slog"
 	mrand "math/rand/v2"
 	"net/http"
@@ -66,7 +66,7 @@ func run() error {
 	}
 
 	wa, err := webauthn.New(&webauthn.Config{
-		RPDisplayName: "Archive Qua Teo",
+		RPDisplayName: "Qua Teo",
 		RPID:          origin.Hostname(),
 		RPOrigins:     []string{origin.String()},
 		Timeouts: webauthn.TimeoutsConfig{
@@ -83,7 +83,12 @@ func run() error {
 		return err
 	}
 
-	links, err := newLinksHandler(os.Getenv("LINKS_FILE"), time.Hour*24*365*10)
+	webRoot, err := os.OpenRoot(os.Getenv("WEB_ROOT"))
+	if err != nil {
+		return fmt.Errorf("open web root: %w", err)
+	}
+
+	links, err := newLinksHandler(os.Getenv("LINKS_FILE"), time.Hour*24*365*10, webRoot.FS())
 	if err != nil {
 		return fmt.Errorf("create links handler: %w", err)
 	}
@@ -239,7 +244,7 @@ func run() error {
 			return
 		}
 
-		l, err := links.create(r.Form.Get("path"), r.Form.Has("parent"))
+		l, err := links.create(r.Form.Get("path"))
 		if err != nil {
 			respond(w, http.StatusBadRequest)
 			return
@@ -261,26 +266,31 @@ func run() error {
 			l, _ = decodeLoginSession(c.Value, secretKey)
 		}
 
-		sln := links.find(l.ID)
 		now := time.Now()
+		sln := links.find(l.ID)
+		urlAllowed := links.match(u, ln, now)
 
-		if ln.match(u, now) && ln.Parent && (l.ID != "" || l.Exp.IsZero()) {
+		if urlAllowed && (l.ID != "" || l.Exp.IsZero()) {
 			// Create new or override current login session if URL contains
 			// code to the same link or session is missing.
 			l = loginSession{Exp: ln.Exp, ID: ln.ID}
 			http.SetCookie(w, &http.Cookie{
 				Name:     loginSessionCookieName,
 				Value:    l.Encode(secretKey),
-				Path:     path.Dir(ln.Path) + "/",
+				Path:     ln.Path,
 				Secure:   true,
 				HttpOnly: true,
 				SameSite: http.SameSiteStrictMode,
 			})
 		} else if l.ID != "" && (sln == nil || sln.Exp.Before(now)) {
+			p := ""
+			if sln != nil {
+				p = sln.Path
+			}
 			// Clear link-based login session if link expired or does not exist.
 			http.SetCookie(w, &http.Cookie{
 				Name:     c.Name,
-				Path:     c.Path,
+				Path:     p,
 				MaxAge:   0,
 				Secure:   true,
 				HttpOnly: true,
@@ -288,7 +298,7 @@ func run() error {
 			})
 		}
 
-		if ln.match(u, now) || sln.match(u, now) || (l.ID == "" && l.Exp.After(now)) {
+		if urlAllowed || links.match(u, sln, now) || (l.ID == "" && l.Exp.After(now)) {
 			respond(w, http.StatusOK)
 		} else {
 			respond(w, http.StatusUnauthorized)
@@ -545,18 +555,9 @@ func marshalProtocol(v any) template.JS {
 }
 
 type link struct {
-	ID     string
-	Path   string
-	Parent bool
-	Exp    time.Time
-}
-
-func (l *link) match(u *url.URL, now time.Time) bool {
-	if l == nil || l.Exp.Before(now) || u == nil {
-		return false
-	}
-	p := path.Clean(u.Path)
-	return p == l.Path || (l.Parent && strings.HasPrefix(p, path.Dir(l.Path)+"/") && path.Ext(p) != "")
+	ID   string
+	Path string
+	Exp  time.Time
 }
 
 type linksHandler struct {
@@ -564,13 +565,15 @@ type linksHandler struct {
 	m        map[string]link
 	filename string
 	ttl      time.Duration
+	root     fs.FS
 }
 
-func newLinksHandler(filename string, ttl time.Duration) (*linksHandler, error) {
+func newLinksHandler(filename string, ttl time.Duration, root fs.FS) (*linksHandler, error) {
 	l := &linksHandler{
 		m:        map[string]link{},
 		filename: filename,
 		ttl:      ttl,
+		root:     root,
 	}
 
 	data, err := os.ReadFile(filename)
@@ -580,8 +583,6 @@ func newLinksHandler(filename string, ttl time.Duration) (*linksHandler, error) 
 	if err != nil {
 		return nil, fmt.Errorf("read file: %w", err)
 	}
-
-	const updateFreq = time.Second
 
 	if err := json.Unmarshal(data, &l.m); err != nil {
 		return nil, fmt.Errorf("read links: %w", err)
@@ -600,22 +601,23 @@ func (l *linksHandler) find(id string) *link {
 	return nil
 }
 
-func (l *linksHandler) create(givenPath string, parent bool) (link, error) {
+func (l *linksHandler) create(givenPath string) (link, error) {
 	p := path.Clean(givenPath)
-	if !strings.HasPrefix(p, "/me/") || (parent && path.Dir(p) == "/me") || path.Ext(p) == "" {
+	if !strings.HasPrefix(p, "/me/") || path.Ext(p) != "" {
 		return link{}, errors.New("invalid path")
 	}
 
 	now := time.Now()
 
 	var id [8]byte
-	rand.Read(id[:])
+	if _, err := rand.Read(id[:]); err != nil {
+		return link{}, fmt.Errorf("generate ID: %w", err)
+	}
 
 	ln := link{
-		ID:     base64.RawURLEncoding.EncodeToString(id[:]),
-		Path:   p,
-		Parent: parent,
-		Exp:    now.Add(l.ttl),
+		ID:   base64.RawURLEncoding.EncodeToString(id[:]),
+		Path: p,
+		Exp:  now.Add(l.ttl),
 	}
 
 	l.mu.Lock()
@@ -633,6 +635,15 @@ func (l *linksHandler) create(givenPath string, parent bool) (link, error) {
 	}
 
 	return ln, nil
+}
+
+func (l *linksHandler) match(u *url.URL, ln *link, now time.Time) bool {
+	if ln == nil || ln.Exp.Before(now) || u == nil {
+		return false
+	}
+	p := path.Clean(u.Path)
+	_, err := fs.Stat(l.root, strings.TrimPrefix(path.Join(ln.Path, "index.html"), "/"))
+	return p == ln.Path || (err == nil && strings.HasPrefix(p, ln.Path+"/"))
 }
 
 func writeAtomic(filename string, data []byte) (err error) {
