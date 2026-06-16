@@ -1,6 +1,0 @@
-#dark-mode label::after,
-#share-link button::after,
-#share-link label::after {
-  mask: var(--icon) no-repeat 50% 50%;
-  mask-size: cover;
-}

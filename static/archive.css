@@ -347,6 +347,8 @@ details summary {
   content: "";
   background-color: var(--icon-color, var(--text));
   display: inline-block;
+  mask: var(--icon) no-repeat 50% 50%;
+  mask-size: cover;
   width: 1em;
   height: 1em;
   margin-bottom: -0.165rem;
