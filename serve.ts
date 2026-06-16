@@ -1,12 +1,13 @@
 import { createServer, type IncomingMessage, type OutgoingHttpHeaders, request } from "http";
-import { execFile } from "child_process";
+import { execFile, spawn } from "child_process";
 import chokidar from "chokidar";
 import { WebSocketServer, type WebSocket } from "ws";
 import { gzip as gzipCb } from "zlib";
-import { readFile } from "fs/promises";
+import { copyFile, readFile } from "fs/promises";
 import path from "path";
 import { promisify } from "util";
 import mime from "mime";
+import { randomBytes } from "crypto";
 
 function toMB(n: number) {
   return (n / (1024 * 1024)).toFixed(3);
@@ -15,7 +16,7 @@ function toMB(n: number) {
 const gzip = promisify(gzipCb);
 
 if (process.argv.length < 3) {
-  console.error("Usage: node server.js <files-dir>");
+  console.error("Usage: node server.js <root-path>");
   process.exit(1);
 }
 
@@ -23,6 +24,9 @@ const IN_DIR = path.resolve(process.argv[2]);
 const OUT_DIR = path.resolve("out");
 const DEFAULTS = "defaults/archive.yml";
 const PORT = Number.parseInt(process.env.PORT || "") || 8080;
+
+let AUTH_PORT = Number.parseInt(process.env.AUTH_PORT || "") || 9000;
+if (AUTH_PORT === PORT) AUTH_PORT++;
 
 type Change = { kind: "M" | "D"; path: string };
 
@@ -38,6 +42,7 @@ async function build(signal?: AbortSignal, changed?: Change[], full?: boolean) {
       child.stdin!.write(changed.map((c) => `${c.kind}\x00${c.path}\x00`).join(""));
     }
     child.stdin!.end();
+    child.stderr?.pipe(process.stderr);
     await promise;
     return true;
   } catch (err: any) {
@@ -50,10 +55,37 @@ const liveReloadScript = /* html */ `
 <script>
   const ws = new WebSocket(location.protocol.replace('http', 'ws') + '//' + location.host);
   ws.onmessage = () => location.reload()
+
+  if (location.pathname.startsWith('/me')) {
+    fetch('/auth', { method: 'POST' })
+      .then(res => {
+        if (!res.ok) throw new Error('unauthorized')
+      })
+      .catch(err => {
+        alert('Authorization failed: ' + err.message)
+      })
+  }
 </script>`;
 
 function injectScript(html: string) {
   return html.replace("</body>", liveReloadScript + "</body>");
+}
+
+function startAuthProxy() {
+  return spawn("go", ["run", "auth/main.go"], {
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      GOEXPERIMENT: "jsonv2",
+      RP_ORIGIN: `http://localhost:${PORT}`,
+      HMAC_SECRET: process.env.HMAC_SECRET || randomBytes(32).toString("hex"),
+      USER_FILE: path.join("auth", "user.local.json"),
+      LINKS_FILE: path.join("auth", "links.local.json"),
+      ADDR: `localhost:${AUTH_PORT}`,
+      REGISTER_ADDR: `localhost:${AUTH_PORT + 1}`,
+      WEB_ROOT: OUT_DIR,
+    },
+  });
 }
 
 console.info("Building . . .");
@@ -61,8 +93,8 @@ if (!(await build(undefined, undefined, true))) process.exit(1);
 
 const server = createServer(async (req, res) => {
   try {
-    if (req.url?.startsWith("/auth/")) {
-      const target = new URL(req.url.replace(/^\/auth/, ""), "http://localhost:9000");
+    if (req.url?.startsWith("/auth")) {
+      const target = new URL(req.url.replace(/^\/auth/, ""), `http://localhost:${AUTH_PORT}`);
       const proxyRes = await new Promise<IncomingMessage>((resolve, reject) => {
         const proxyReq = request(
           target,
@@ -148,6 +180,12 @@ function onChange(changedPath: string, kind: "M" | "D") {
   rebuildTimeout = setTimeout(async () => {
     console.info(`Rebuilding ${changedPath} . . .`);
 
+    if (changedPath.startsWith("static/")) {
+      await copyFile(changedPath, `${OUT_DIR}/.assets/${changedPath.replace(/^static\//, "")}`);
+      clients.forEach((c) => c.send("reload"));
+      return;
+    }
+
     const inDir = changedPath.startsWith(IN_DIR);
     if (inDir) {
       const existing = changed.find((c) => c.path === changedPath);
@@ -170,6 +208,10 @@ function onChange(changedPath: string, kind: "M" | "D") {
 watcher.on("change", (path) => onChange(path, "M"));
 watcher.on("unlink", (path) => onChange(path, "D"));
 watcher.on("error", (err) => console.error("Watcher error:", err));
+
+startAuthProxy().on("error", (err) => {
+  console.error("Start auth proxy:", err);
+});
 
 server.listen(PORT, () => console.info(`Server running at http://localhost:${PORT}`));
 
