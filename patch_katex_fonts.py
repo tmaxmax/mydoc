@@ -87,7 +87,7 @@ def main():
     metrics = read_metrics(katex_dir / "src" / "fontMetricsData.js")
     metrics = {k: v for k, v in metrics.items() if k in patch_sets}
 
-    css = (katex_dir / "dist" / "katex.min.css").read_text(encoding='utf-8')
+    css = (katex_dir / "dist" / "katex-swap.min.css").read_text(encoding='utf-8')
     css = re.sub(r",url\(fonts\/\S+\.(woff|ttf)\) format\(\"(woff|truetype)\"\)", "", css)
     css = re.sub(r"fonts(\/KaTeX_(\S+)\.woff2)", r".\1", css)
 
