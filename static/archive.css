@@ -1,4 +1,4 @@
-/* @font-face {
+@font-face {
   font-family: "EB Garamond";
   src: url("./eb-garamond.woff2") format("woff2-variations");
   font-style: normal;
@@ -20,7 +20,7 @@
   font-weight: 200 800;
   font-style: oblique -11deg 0deg;
   font-display: swap;
-} */
+}
 
 *,
 *::before,
@@ -370,7 +370,7 @@ details summary {
 }
 
 #dark-mode [for="dark-system"]::after {
-  --icon: var(--icon-system-theme);
+  /* --icon: var(--icon-system-theme); */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -383,11 +383,11 @@ details summary {
   }
 
   #dark-mode [for="dark-self"]::after {
-    --icon: var(--icon-dark);
+    /* --icon: var(--icon-dark); */
   }
 
   #dark-mode [for="dark-other"]::after {
-    --icon: var(--icon-light);
+    /* --icon: var(--icon-light); */
   }
 
   #dark-mode [for="dark-self"] .light,
@@ -406,11 +406,11 @@ details summary {
   }
 
   #dark-mode [for="dark-self"]::after {
-    --icon: var(--icon-light);
+    /* --icon: var(--icon-light); */
   }
 
   #dark-mode [for="dark-other"]::after {
-    --icon: var(--icon-dark);
+    /* --icon: var(--icon-dark); */
   }
 
   #dark-mode [for="dark-self"] .dark,
@@ -518,9 +518,9 @@ details summary {
   --code-hue-6: light-dark(#986801, #d19a66);
   --code-hue-6-2: light-dark(#c18401, #e6c07b);
 
-  --icon-dark: url("./icon/moon.svg");
+  /* --icon-dark: url("./icon/moon.svg");
   --icon-light: url("./icon/sun.svg");
-  --icon-system-theme: url("./icon/contrast.svg");
+  --icon-system-theme: url("./icon/contrast.svg"); */
   --icon-share: url("./icon/share.svg");
   --icon-share-success: url("./icon/success.svg");
   --icon-share-error: url("./icon/error.svg");
