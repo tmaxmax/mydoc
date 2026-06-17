@@ -32,7 +32,7 @@ type Change = { kind: "M" | "D"; path: string };
 
 async function build(signal?: AbortSignal, changed?: Change[], full?: boolean) {
   try {
-    const args = ["run", "build.go", `-in=${IN_DIR}`, `-out=${OUT_DIR}`].concat(full ? ["-full"] : []);
+    const args = ["run", "./build", `-in=${IN_DIR}`, `-out=${OUT_DIR}`].concat(full ? ["-full"] : []);
     const { promise, resolve, reject } = Promise.withResolvers();
     const child = execFile("go", args, { signal }, (err, stdout, stderr) => {
       if (err) reject(err);
@@ -42,7 +42,7 @@ async function build(signal?: AbortSignal, changed?: Change[], full?: boolean) {
       child.stdin!.write(changed.map((c) => `${c.kind}\x00${c.path}\x00`).join(""));
     }
     child.stdin!.end();
-    child.stderr?.pipe(process.stderr);
+    child.stderr!.pipe(process.stderr);
     await promise;
     return true;
   } catch (err: any) {
@@ -72,7 +72,7 @@ function injectScript(html: string) {
 }
 
 function startAuthProxy() {
-  return spawn("go", ["run", "auth/main.go"], {
+  return spawn("go", ["run", "./auth"], {
     stdio: "inherit",
     env: {
       ...process.env,
