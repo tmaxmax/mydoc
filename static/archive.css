@@ -221,8 +221,10 @@ math * {
   border-radius: 0.5em;
 }
 
-.no-wrap {
-  white-space: nowrap;
+@media (min-width: 375px) {
+  .no-wrap {
+    white-space: nowrap;
+  }
 }
 
 blockquote {
