@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>$pagetitle$$if(title-suffix)$ – $title-suffix$$endif$</title>
+    <title>$if(title-prefix)$$title-prefix$ – $endif$$pagetitle$</title>
     $if(date-meta)$
     <meta name="dcterms.date" content="$date-meta$" />
     $endif$

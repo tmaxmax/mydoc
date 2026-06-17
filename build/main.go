@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"flag"
@@ -16,6 +17,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-yaml"
 )
@@ -243,9 +245,13 @@ func nullStream(r *bufio.Reader, errp *error) iter.Seq[string] {
 }
 
 type Metadata struct {
-	TitlePrefix string `yaml:"title-prefix"`
-	PageTitle   string `yaml:"page-title"`
-	Description string `yaml:"description-meta"`
+	TitlePrefix string   `yaml:"title-prefix"`
+	PageTitle   string   `yaml:"pagetitle"`
+	Description string   `yaml:"description-meta"`
+	Date        DateMeta `yaml:"date-meta"`
+	Title       string   `yaml:"title"`
+	Subtitle    string   `yaml:"subtitle"`
+	Lang        string   `yaml:"lang"`
 }
 
 func metadata(inPath string) (Metadata, error) {
@@ -276,6 +282,44 @@ func metadata(inPath string) (Metadata, error) {
 	}
 
 	return meta, nil
+}
+
+type DateMeta struct {
+	time.Time
+	Parts int
+}
+
+func (d *DateMeta) UnmarshalYAML(b []byte) (err error) {
+	s := string(b)
+	d.Parts = strings.Count(s, "-")
+	switch d.Parts {
+	case 0:
+		d.Time, err = time.Parse(time.DateOnly[:4], s)
+	case 1:
+		d.Time, err = time.Parse(time.DateOnly[:7], s)
+	case 2:
+		d.Time, err = time.Parse(time.DateOnly, s)
+	default:
+		return fmt.Errorf("got %d date parts", d.Parts)
+	}
+	return
+}
+
+func (d *DateMeta) MarshalYAML() ([]byte, error) {
+	switch d.Parts {
+	case 0:
+		return d.Time.AppendFormat(nil, time.DateOnly[:4]), nil
+	case 1:
+		return d.Time.AppendFormat(nil, time.DateOnly[:7]), nil
+	case 2:
+		return d.Time.AppendFormat(nil, time.DateOnly), nil
+	default:
+		return nil, fmt.Errorf("got %d date parts", d.Parts)
+	}
+}
+
+func (d *DateMeta) Compare(other *DateMeta) int {
+	return cmp.Or(d.Time.Compare(other.Time), cmp.Compare(d.Parts, other.Parts))
 }
 
 func isMetadataEnd(s string) bool {
