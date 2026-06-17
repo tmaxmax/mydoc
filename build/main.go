@@ -2,9 +2,8 @@ package main
 
 import (
 	"bufio"
-	"bytes"
-	"cmp"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -14,12 +13,10 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
-	"time"
-
-	"github.com/goccy/go-yaml"
 )
 
 func main() {
@@ -33,13 +30,12 @@ func run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	var inDir, outDir, pandocCmd string
+	var inDir, outDir string
 	var full bool
 
 	f := flag.NewFlagSet("mydoc", flag.ContinueOnError)
 	f.StringVar(&inDir, "in", "", "Input directory. All changes are resolved relative to this directory.")
 	f.StringVar(&outDir, "out", "", "Output directory.")
-	f.StringVar(&pandocCmd, "pandoc", "pandoc", "The pandoc command.")
 	f.BoolVar(&full, "full", false, "Trigger a full build.")
 
 	if err := f.Parse(os.Args[1:]); err != nil {
@@ -51,24 +47,51 @@ func run() error {
 		return fmt.Errorf("get absolute input path: %w", err)
 	}
 
-	paths := map[string][]string{}
-	if err := filepath.WalkDir(inDir, func(path string, d fs.DirEntry, err error) error {
+	filesInDirs := map[string][]string{}
+	hasIndex := func(dir string) bool {
+		return slices.ContainsFunc(filesInDirs[dir], func(p string) bool {
+			return path.Base(p) == indexFile
+		})
+	}
+	dirs := map[string][]string{}
+
+	if err := filepath.WalkDir(inDir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
+
+		p = filepath.ToSlash(strings.TrimPrefix(p, inDir))
+		dir := path.Dir(p)
 
 		if strings.HasPrefix(d.Name(), ".") {
 			if d.IsDir() {
 				return filepath.SkipDir
 			}
-		} else if !d.IsDir() {
-			dir := filepath.Dir(path)
-			paths[dir] = append(paths[dir], path)
+		} else if d.IsDir() {
+			dirs[dir] = append(dirs[dir], p)
+		} else if p != "" {
+			filesInDirs[dir] = append(filesInDirs[dir], p)
 		}
 
 		return nil
 	}); err != nil {
 		return fmt.Errorf("read input dir: %w", err)
+	}
+
+	tree, err := buildTree("/", dirs, filesInDirs, inDir)
+	if err != nil {
+		return fmt.Errorf("build index tree: %w", err)
+	}
+
+	trees := map[string]Tree{}
+	for t := range tree.Walk() {
+		depth := 1
+		if t.Dir == "/" {
+			depth = 5
+		}
+		if t.Href != "" {
+			trees[t.Dir] = t.Clone(depth)
+		}
 	}
 
 	var changed []Change
@@ -77,10 +100,10 @@ func run() error {
 		fmt.Fprintln(os.Stderr, "FULL BUILD")
 
 		changed = changed[:0]
-		for _, files := range paths {
+		for _, files := range filesInDirs {
 			for _, file := range files {
 				changed = append(changed, Change{
-					Path:   strings.TrimPrefix(file, inDir+string(filepath.Separator)),
+					Path:   strings.TrimPrefix(file, "/"),
 					Status: StatusModified,
 				})
 			}
@@ -113,16 +136,39 @@ func run() error {
 	} else {
 		fmt.Fprintln(os.Stderr, "DIFF BUILD")
 
+		seen := map[string]struct{}{}
+		toRebuild := []string(nil)
+
 		for change := range changes(os.Stdin, &err) {
-			if !strings.HasPrefix(change.Path, ".") {
-				changed = append(changed, change)
+			if hasDot(change.Path) {
+				continue
 			}
+
+			dir := path.Dir("/" + change.Path)
+			if hasIndex(path.Join(inDir, dir)) {
+				toRebuild = append(toRebuild, path.Join(dir, indexFile))
+			}
+			if path.Base(change.Path) == indexFile && (change.Status == StatusAdded || change.Status == StatusDeleted) {
+				toRebuild = append(toRebuild, filesInDirs[dir]...)
+			}
+
+			seen[change.Path] = struct{}{}
+			changed = append(changed, change)
 		}
 		if err != nil {
 			return fmt.Errorf("read input: %w", err)
 		}
 
-		if slices.ContainsFunc(changed, func(c Change) bool { return filepath.Ext(c.Path) == ".md" }) {
+		for _, p := range toRebuild {
+			if _, ok := seen[p]; !ok {
+				changed = append(changed, Change{
+					Status: StatusModified,
+					Path:   p,
+				})
+			}
+		}
+
+		if slices.ContainsFunc(changed, func(c Change) bool { return path.Ext(c.Path) == ".md" }) {
 			fmt.Fprintln(os.Stderr, "Patch KaTeX fonts...")
 			if err := patchKatexFonts(ctx); err != nil {
 				return fmt.Errorf("patch KaTeX: %w", err)
@@ -131,20 +177,26 @@ func run() error {
 	}
 
 	for _, change := range changed {
-		inPath := filepath.Join(inDir, change.Path)
+		inPath := filepath.Join(inDir, filepath.FromSlash(change.Path))
 
 		modify, outPath := os.Link, ""
-		if ext := filepath.Ext(change.Path); ext == ".md" {
-			outPath = filepath.Join(outDir, strings.TrimSuffix(change.Path, ext)+".html")
-			modify = func(in, out string) error { return pandoc(ctx, pandocCmd, in, out) }
+		if ext := path.Ext(change.Path); ext == ".md" {
+			outPath = filepath.Join(outDir, filepath.FromSlash(strings.TrimSuffix(change.Path, ext)+".html"))
+
+			var meta pandocMetadata
+			if path.Base(change.Path) == indexFile {
+				meta.Tree = new(trees[path.Dir("/"+change.Path)])
+			}
+
+			modify = func(in, out string) error { return pandoc(ctx, meta, in, out) }
 		} else {
-			outPath = filepath.Join(outDir, change.Path)
+			outPath = filepath.Join(outDir, filepath.FromSlash(change.Path))
 		}
 
 		fmt.Fprintf(os.Stderr, "Handle %s %s...\n", change.Status, change.Path)
 
 		switch change.Status {
-		case StatusModified:
+		case StatusAdded, StatusModified:
 			if err = os.MkdirAll(filepath.Dir(outPath), 0o755); err == nil {
 				err = modify(inPath, outPath)
 			}
@@ -162,9 +214,24 @@ func run() error {
 	return nil
 }
 
+func hasDot(p string) bool {
+	if p == "." {
+		return false
+	}
+	for c := range strings.SplitSeq(p, "/") {
+		if strings.HasPrefix(c, ".") {
+			return true
+		}
+	}
+	return false
+}
+
+const indexFile = "index.md"
+
 type Status string
 
 const (
+	StatusAdded    Status = "A"
 	StatusModified Status = "M"
 	StatusDeleted  Status = "D"
 )
@@ -189,7 +256,12 @@ func changes(r io.Reader, errp *error) iter.Seq[Change] {
 			var c Change
 
 			switch status[0] {
-			case 'A', 'C', 'M', 'T':
+			case 'A':
+				c = Change{
+					Status: StatusAdded,
+					Path:   path,
+				}
+			case 'C', 'M', 'T':
 				c = Change{
 					Status: StatusModified,
 					Path:   path,
@@ -244,90 +316,28 @@ func nullStream(r *bufio.Reader, errp *error) iter.Seq[string] {
 	}
 }
 
-type Metadata struct {
-	TitlePrefix string   `yaml:"title-prefix"`
-	PageTitle   string   `yaml:"pagetitle"`
-	Description string   `yaml:"description-meta"`
-	Date        DateMeta `yaml:"date-meta"`
-	Title       string   `yaml:"title"`
-	Subtitle    string   `yaml:"subtitle"`
-	Lang        string   `yaml:"lang"`
+type pandocMetadata struct {
+	Tree *Tree
 }
 
-func metadata(inPath string) (Metadata, error) {
-	f, err := os.Open(inPath)
+func pandoc(ctx context.Context, meta pandocMetadata, inPath, outPath string) error {
+	f, err := os.CreateTemp("", "pandoc-meta-*.json")
 	if err != nil {
-		return Metadata{}, err
+		return fmt.Errorf("create metadata file: %w", err)
 	}
+	defer os.Remove(f.Name())
 	defer f.Close()
 
-	sc := bufio.NewScanner(f)
-	if !sc.Scan() || sc.Text() != "---" {
-		return Metadata{}, sc.Err()
+	if err := errors.Join(json.NewEncoder(f).Encode(meta), f.Close()); err != nil {
+		return fmt.Errorf("write metadata: %w", err)
 	}
 
-	var buf bytes.Buffer
-	for sc.Scan() && !isMetadataEnd(sc.Text()) {
-		buf.Write(sc.Bytes())
-		buf.WriteByte('\n')
-	}
-
-	if !isMetadataEnd(sc.Text()) {
-		return Metadata{}, sc.Err()
-	}
-
-	var meta Metadata
-	if err := yaml.Unmarshal(buf.Bytes(), &meta); err != nil {
-		return Metadata{}, err
-	}
-
-	return meta, nil
-}
-
-type DateMeta struct {
-	time.Time
-	Parts int
-}
-
-func (d *DateMeta) UnmarshalYAML(b []byte) (err error) {
-	s := string(b)
-	d.Parts = strings.Count(s, "-")
-	switch d.Parts {
-	case 0:
-		d.Time, err = time.Parse(time.DateOnly[:4], s)
-	case 1:
-		d.Time, err = time.Parse(time.DateOnly[:7], s)
-	case 2:
-		d.Time, err = time.Parse(time.DateOnly, s)
-	default:
-		return fmt.Errorf("got %d date parts", d.Parts)
-	}
-	return
-}
-
-func (d *DateMeta) MarshalYAML() ([]byte, error) {
-	switch d.Parts {
-	case 0:
-		return d.Time.AppendFormat(nil, time.DateOnly[:4]), nil
-	case 1:
-		return d.Time.AppendFormat(nil, time.DateOnly[:7]), nil
-	case 2:
-		return d.Time.AppendFormat(nil, time.DateOnly), nil
-	default:
-		return nil, fmt.Errorf("got %d date parts", d.Parts)
-	}
-}
-
-func (d *DateMeta) Compare(other *DateMeta) int {
-	return cmp.Or(d.Time.Compare(other.Time), cmp.Compare(d.Parts, other.Parts))
-}
-
-func isMetadataEnd(s string) bool {
-	return s == "---" || s == "..."
-}
-
-func pandoc(ctx context.Context, pandocCmd, inPath, outPath string) error {
-	cmd := exec.CommandContext(ctx, pandocCmd, "-d", filepath.Join("defaults", "archive.yml"), inPath, "-o", outPath)
+	cmd := exec.CommandContext(ctx, "pandoc",
+		"-d", filepath.Join("defaults", "archive.yml"),
+		"--metadata-file", f.Name(),
+		inPath,
+		"-o", outPath,
+	)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("%w\n%s", err, string(out))
 	}
