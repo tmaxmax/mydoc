@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>$title$</title>
+    <title>$pagetitle$$if(title-suffix)$ – $title-suffix$$endif$</title>
+    $if(date-meta)$
+    <meta name="dcterms.date" content="$date-meta$" />
+    $endif$
+    $if(description-meta)$
+    <meta name="description" content="$description-meta$" />
+    $endif$
     $if(math)$
     <link rel="preload" href="/.assets/KaTeX_AMS-Regular.woff2" as="font" type="font/woff2" />
     <link rel="preload" href="/.assets/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" />
@@ -38,6 +44,14 @@
       </fieldset>
     </nav>
     <main>
+      $if(title)$
+      <header>
+        <h1>$title$</h1>
+        $if(subtitle)$
+        <p><strong>$subtitle$</strong></p>
+        $endif$
+      </header>
+      $endif$
 $body$
     </main>
     <script src="/.assets/archive.js"></script>
