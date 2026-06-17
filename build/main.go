@@ -333,14 +333,16 @@ func pandoc(ctx context.Context, meta pandocMetadata, inPath, outPath string) er
 	}
 
 	cmd := exec.CommandContext(ctx, "pandoc",
+		"--quiet",
 		"-d", filepath.Join("defaults", "archive.yml"),
 		"--metadata-file", f.Name(),
 		inPath,
 		"-o", outPath,
 	)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("%w\n%s", err, string(out))
+		return fmt.Errorf("%w\n%s", err, out)
 	}
+
 	return nil
 }
 
