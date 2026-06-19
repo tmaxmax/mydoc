@@ -48,14 +48,30 @@
       <div class="$style$">
       $endif$
       $if(title)$
-      <header>
-        <h1>$title$</h1>
+      <header $if(header-style)$class="$header-style$"$endif$>
+        <h1 id="title">$title$</h1>
         $if(subtitle)$
         <p>$subtitle$</p>
         $endif$
       </header>
       $endif$
+      $if(tree-with-header)$
+      $if(Tree)$
+      <ul aria-labelledby="title">
+        ${Tree.Children:tree()}
+      </ul>
+      $endif$
+      $endif$
 $body$
+      $if(tree-with-header)$
+      $elseif(Tree)$
+      <figure class="more">
+        <figcaption>Read more</figcaption>
+        <ul>
+          ${Tree.Children:tree()}
+        </ul>
+      </figure>
+      $endif$
       $if(style)$
       </div>
       $endif$
