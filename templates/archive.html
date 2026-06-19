@@ -44,15 +44,21 @@
       </fieldset>
     </nav>
     <main>
+      $if(style)$
+      <div class="$style$">
+      $endif$
       $if(title)$
       <header>
         <h1>$title$</h1>
         $if(subtitle)$
-        <p><strong>$subtitle$</strong></p>
+        <p>$subtitle$</p>
         $endif$
       </header>
       $endif$
 $body$
+      $if(style)$
+      </div>
+      $endif$
     </main>
     <script src="/.assets/archive.js"></script>
     ${share()}
