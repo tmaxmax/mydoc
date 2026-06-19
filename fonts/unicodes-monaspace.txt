@@ -1,0 +1,5 @@
+U+0000-007F # ASCII
+U+00A0-00FF # Latin-1 Supplement
+U+2000-2064 # General punctuation
+U+20AC # €
+U+2190-21FF # Arrows
