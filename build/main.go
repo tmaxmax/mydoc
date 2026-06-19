@@ -90,7 +90,7 @@ func run() error {
 			depth = 5
 		}
 		if t.Href != "" {
-			trees[t.Dir] = t.Clone(depth)
+			trees[t.Dir] = t.Extract(depth)
 		}
 	}
 

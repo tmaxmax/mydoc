@@ -18,32 +18,45 @@ import (
 )
 
 type Tree struct {
-	Name          string
-	Href          string
-	Dir           string `json:"-"`
-	LastPublished DateMeta
-	Articles      []Article
-	Children      []Tree
+	Name     string
+	Href     string
+	Dir      string `json:"-"`
+	Date     DateMeta
+	Children []Child
 }
 
-func (t Tree) Compare(u Tree) int {
-	return cmp.Or(
-		u.LastPublished.Compare(t.LastPublished),
-		strings.Compare(t.Name, u.Name),
-	)
+func (t Tree) compare(u Child) int {
+	switch u := u.(type) {
+	case Tree:
+		return cmp.Or(
+			u.Date.Compare(t.Date),
+			strings.Compare(t.Name, u.Name),
+		)
+	case Article:
+		return cmp.Or(
+			u.Date.Compare(t.Date),
+			strings.Compare(t.Name, u.Title),
+		)
+	default:
+		return 0
+	}
 }
 
-func (t Tree) Clone(depth int) Tree {
+func (t Tree) Extract(depth int) Tree {
 	c := Tree{
-		Name:          t.Name,
-		Href:          t.Href,
-		Dir:           t.Dir,
-		LastPublished: t.LastPublished,
-		Articles:      slices.Clone(t.Articles),
+		Name:     t.Name,
+		Href:     t.Href,
+		Dir:      t.Dir,
+		Date:     t.Date,
+		Children: []Child{},
 	}
 	if depth > 0 {
 		for _, child := range t.Children {
-			c.Children = append(c.Children, child.Clone(depth-1))
+			if ct, ok := child.(Tree); ok {
+				c.Children = append(c.Children, ct.Extract(depth-1))
+			} else {
+				c.Children = append(c.Children, child)
+			}
 		}
 	}
 	return c
@@ -60,11 +73,15 @@ func (t Tree) walk(yield func(Tree) bool) bool {
 		return false
 	}
 	for _, c := range t.Children {
-		if !c.walk(yield) {
+		if ct, ok := c.(Tree); ok && !ct.walk(yield) {
 			return false
 		}
 	}
 	return true
+}
+
+type Child interface {
+	compare(Child) int
 }
 
 type Article struct {
@@ -73,16 +90,27 @@ type Article struct {
 	Date        DateMeta
 	Description string
 	Href        string
+	Folder      string
 	Index       bool
 }
 
-func (a Article) Compare(b Article) int {
-	return cmp.Or(
-		cmpBool(b.Index, a.Index),
-		b.Date.Compare(a.Date),
-		strings.Compare(a.Title, b.Title),
-		strings.Compare(a.Subtitle, b.Subtitle),
-	)
+func (a Article) compare(b Child) int {
+	switch b := b.(type) {
+	case Article:
+		return cmp.Or(
+			cmpBool(b.Index && b.Folder == "", a.Index && a.Folder == ""),
+			b.Date.Compare(a.Date),
+			strings.Compare(a.Title, b.Title),
+			strings.Compare(a.Subtitle, b.Subtitle),
+		)
+	case Tree:
+		return cmp.Or(
+			b.Date.Compare(a.Date),
+			strings.Compare(a.Title, b.Name),
+		)
+	default:
+		return 0
+	}
 }
 
 func buildTree(entrypoint string, dirs, filesInDirs map[string][]string, inDir string) (Tree, error) {
@@ -127,36 +155,47 @@ func buildTree(entrypoint string, dirs, filesInDirs map[string][]string, inDir s
 		} else {
 			a.Title, a.Subtitle = pickTitleSubtitle(meta, metas[iMeta])
 		}
-		if a.Date.Compare(t.LastPublished) > 0 {
-			t.LastPublished = a.Date
+		if a.Date.Compare(t.Date) > 0 {
+			t.Date = a.Date
 		}
-		t.Articles = append(t.Articles, a)
+		t.Children = append(t.Children, a)
 	}
 
 	for _, childDir := range dirs[entrypoint] {
 		ct, err := buildTree(childDir, dirs, filesInDirs, inDir)
-		if errors.Is(err, errNoArticles) {
+		if errors.Is(err, errNoChildren) {
 			continue
 		} else if err != nil {
 			return Tree{}, fmt.Errorf("for %q: %w", childDir, err)
 		}
-		if ct.LastPublished.Compare(t.LastPublished) > 0 {
-			t.LastPublished = ct.LastPublished
+		if ct.Date.Compare(t.Date) > 0 {
+			t.Date = ct.Date
 		}
-		t.Children = append(t.Children, ct)
+		if c, ok := ct.Children[0].(Article); ok && len(ct.Children) == 1 {
+			if c.Folder == "" {
+				c.Folder = ct.Name
+			} else {
+				c.Folder = ct.Name + "/" + c.Folder
+			}
+			t.Children = append(t.Children, c)
+		} else {
+			t.Children = append(t.Children, ct)
+		}
 	}
 
-	if len(t.Children) == 0 && len(t.Articles) == 0 {
-		return Tree{}, errNoArticles
+	if l := len(t.Children); l == 0 {
+		return Tree{}, errNoChildren
+	} else if c, ok := t.Children[0].(Tree); ok && l == 1 {
+		c.Name = t.Name + "/" + c.Name
+		return c, nil
 	}
 
-	slices.SortStableFunc(t.Articles, Article.Compare)
-	slices.SortStableFunc(t.Children, Tree.Compare)
+	slices.SortStableFunc(t.Children, Child.compare)
 
 	return t, nil
 }
 
-var errNoArticles = errors.New("no articles")
+var errNoChildren = errors.New("no articles")
 
 func hrefFromPath(p string) string {
 	p = strings.TrimSuffix(p, indexFile)
