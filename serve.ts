@@ -3,7 +3,7 @@ import { execFile, spawn } from "child_process";
 import chokidar from "chokidar";
 import { WebSocketServer, type WebSocket } from "ws";
 import { gzip as gzipCb } from "zlib";
-import { copyFile, readFile } from "fs/promises";
+import { copyFile, readFile, unlink } from "fs/promises";
 import path from "path";
 import { promisify } from "util";
 import mime from "mime";
@@ -195,7 +195,12 @@ function onChange({ path: changedPath, kind }: Change) {
 
   rebuildTimeout = setTimeout(async () => {
     if (changedPath.startsWith("static/")) {
-      await copyFile(changedPath, `${OUT_DIR}/.assets/${changedPath.replace(/^static\//, "")}`);
+      const target = `${OUT_DIR}/.assets/${changedPath.replace(/^static\//, "")}`;
+      if (kind === "D") {
+        await unlink(target);
+      } else {
+        await copyFile(changedPath, target);
+      }
       clients.forEach((c) => c.send("reload"));
       return;
     }
