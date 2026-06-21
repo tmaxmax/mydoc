@@ -69,17 +69,15 @@
       $endif$
 $body$
       $if(tree-with-header)$
-      $else$
-        $if(Tree)$
-        <figure class="more">
-          <figcaption>Read more</figcaption>
-          <ul class="tree">
-            $Tree$
-          </ul>
-        </figure>
-        $endif$
-        <a href="$IndexHref$" class="index-link">></a>
+      $elseif(Tree)$
+      <figure class="more">
+        <figcaption>Read more</figcaption>
+        <ul class="tree">
+          $Tree$
+        </ul>
+      </figure>
       $endif$
+      <a href="$IndexHref$" class="index-link">></a>
       $if(style)$
       </div>
       $endif$
