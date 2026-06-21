@@ -45,3 +45,25 @@ darkMode.addEventListener("change", () => {
 
 setDarkMode(prefersDarkMode());
 darkModeInput.classList.add("system");
+
+/**
+ * @param {Element} el
+ */
+function openAncestorDetails(el) {
+  let d = el && el.closest("details");
+  while (d) {
+    d.open = true;
+    d = d.parentElement && d.parentElement.closest("details");
+  }
+}
+
+function revealHashTarget() {
+  if (!location.hash) return;
+  const target = document.getElementById(location.hash.slice(1));
+  if (target) {
+    openAncestorDetails(target);
+  }
+}
+
+window.addEventListener("DOMContentLoaded", revealHashTarget);
+window.addEventListener("hashchange", revealHashTarget);
