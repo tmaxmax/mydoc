@@ -729,6 +729,8 @@ code.hljs {
   padding-top: 0.8em;
   width: 100%;
   line-height: 0.9;
+  user-select: none;
+  cursor: pointer;
 }
 
 .tree .entry a {
