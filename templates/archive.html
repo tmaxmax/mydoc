@@ -48,29 +48,37 @@
       <div class="$style$">
       $endif$
       $if(title)$
-      <header $if(header-style)$class="$header-style$"$endif$>
-        <h1 id="title">$title$</h1>
+      <header id="title" $if(header-style)$class="$header-style$"$endif$>
+        <h1>$title$</h1>
         $if(subtitle)$
         <p>$subtitle$</p>
         $endif$
       </header>
       $endif$
+      $if(Message)$
+      <p class="message">$Message$</p>
+      $endif$
       $if(tree-with-header)$
       $if(Tree)$
-      <ul aria-labelledby="title">
-        ${Tree.Children:tree()}
-      </ul>
+      <section>
+        <ul aria-labelledby="title" class="tree">
+          $Tree$
+        </ul>
+      </section>
       $endif$
       $endif$
 $body$
       $if(tree-with-header)$
-      $elseif(Tree)$
-      <figure class="more">
-        <figcaption>Read more</figcaption>
-        <ul>
-          ${Tree.Children:tree()}
-        </ul>
-      </figure>
+      $else$
+        $if(Tree)$
+        <figure class="more">
+          <figcaption>Read more</figcaption>
+          <ul class="tree">
+            $Tree$
+          </ul>
+        </figure>
+        $endif$
+        <a href="$IndexHref$" class="index-link">></a>
       $endif$
       $if(style)$
       </div>

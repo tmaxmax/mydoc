@@ -142,7 +142,7 @@ h6 {
 h1 {
   margin: 0;
   font-size: 2em;
-  font-weight: 450;
+  font-weight: 400;
   line-height: 0.9;
   text-transform: lowercase;
   font-feature-settings:
@@ -150,9 +150,8 @@ h1 {
     "swsh" 1;
 }
 
-:is(h1, h2) .sensitive {
+:is(h1, h2, .tree) .sensitive {
   text-transform: none;
-  font-size: 1.1em;
   font-feature-settings:
     "c2sc" 1,
     "smcp" 0,
@@ -160,23 +159,49 @@ h1 {
     "swsh" 1;
 }
 
-:is(h1, h2) .sensitive .smcp {
-  font-feature-settings: "smcp";
+:is(h1, h2, .tree) .sensitive .smcp {
+  font-feature-settings: "smcp" 1;
   font-size: 0.9em;
-  font-weight: 460;
+  font-weight: 450;
 }
 
 header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
   margin: 0.5em auto 1.2em auto;
   padding-bottom: 0.6em;
   border-bottom: 0.5px solid;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+}
+
+header.index {
+  flex-direction: column-reverse;
+  gap: 0;
+  text-align: center;
+  border-bottom: 0;
+  padding-bottom: 0;
+  user-select: none;
+}
+
+header.index h1 {
+  letter-spacing: 0;
+  line-height: 1.01;
+  text-transform: none;
+  font-feature-settings:
+    "smcp" 0,
+    "swsh" 1;
+}
+
+nav:has(+ main > header.index) {
+  position: fixed;
+  right: 1rem;
 }
 
 header p {
   text-transform: lowercase;
   font-feature-settings: "smcp" 1;
-  margin: 0.25em 0 0 0;
+  margin: 0;
   text-wrap: balance;
 }
 
@@ -185,12 +210,12 @@ h2 {
   text-transform: lowercase;
   font-feature-settings: "smcp" 1;
   font-weight: 400;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   font-size: 1.2em;
 }
 
 h3 {
-  margin: 1.2rem auto 0.9rem auto;
+  margin: 1.4rem auto 0.9rem auto;
   font-style: italic;
   font-size: 1.1em;
 }
@@ -198,6 +223,7 @@ h3 {
 h4,
 h5,
 h6 {
+  margin: 0.9rem auto;
   font-weight: 480;
 }
 
@@ -277,13 +303,13 @@ blockquote :last-child {
 }
 
 hr {
-  margin: 1.5em auto;
+  margin: 1.6em auto;
   border: none;
   overflow: visible;
-  color: var(--text);
+  color: color-mix(in srgb, var(--text) 70%, var(--bg) 30%);
 }
 
-hr:not(.line)::before {
+hr::before {
   content: "\2619";
   display: block;
   line-height: 0;
@@ -292,19 +318,70 @@ hr:not(.line)::before {
   margin: 0 auto;
 }
 
-hr.line {
-  background-color: var(--hr);
-  height: 0.5px;
-}
-
 a {
-  color: inherit;
-  text-decoration: underline dotted 2px;
+  --color: color-mix(in srgb, var(--text) 70%, var(--bg) 30%);
+  --icon: url("icon/link.svg");
+  color: var(--color);
+  text-decoration: none;
 }
 
-a:visited {
-  color: var(--visited-a);
-  font-style: italic;
+a.page {
+  --color: var(--text);
+  --icon: url("icon/document.svg");
+  text-transform: lowercase;
+  font-feature-settings:
+    "smcp" 1,
+    "swsh" 0;
+  letter-spacing: 0.05em;
+  margin-right: 0.05em;
+}
+
+a.page::before,
+a:not(.page)::after {
+  content: "";
+  display: inline-block;
+  background-color: var(--color);
+  mask: var(--icon) no-repeat 50% 50%;
+  mask-size: cover;
+}
+
+a::after {
+  width: 0.65em;
+  height: 0.65em;
+  vertical-align: text-top;
+  margin-top: 0.1em;
+  margin-left: 0.05em;
+}
+
+a.page::before {
+  width: 0.62em;
+  height: 0.62em;
+  margin-right: 0.15em;
+  margin-left: 0.1em;
+  margin-bottom: -0.05em;
+}
+
+a.url {
+  overflow-wrap: anywhere;
+}
+
+a:not(.index-link):hover {
+  text-decoration: underline solid 0.5px var(--color);
+}
+
+a.index-link {
+  display: block;
+  line-height: 1;
+  text-align: center;
+  width: 2rem;
+  margin: 2rem auto 0 auto;
+  font-size: 1.2em;
+  font-feature-settings: "ss04" 1;
+}
+
+a.index-link::after {
+  content: none;
+  display: none;
 }
 
 details {
@@ -472,22 +549,20 @@ details summary {
 .poem-indent {
   margin: 0 auto;
   line-height: 1.37;
-  font-feature-settings:
-    "dlig" 1,
-    "onum" 1;
+  font-feature-settings: "onum" 1;
 }
 
 .book {
   text-align: left;
-  hyphens: auto;
 }
 
-.book :is(:not(header, h1, h2, h3, h4, h5, h6)) {
+.book p {
   text-indent: var(--indent) each-line;
 }
 
 @media (min-width: 475px) {
   .book {
+    hyphens: auto;
     text-align: justify;
     text-justify: inter-word;
   }
@@ -512,7 +587,7 @@ details summary {
   width: fit-content;
 }
 
-:is(.poem, .poem-indent) :not(:is(h1, h2, h3, h4, h5, h6)) {
+:is(.poem, .poem-indent) p {
   text-indent: var(--indent) each-line hanging;
 }
 
@@ -529,10 +604,9 @@ details summary {
 
   --bg: light-dark(#fffff8, black);
   --text: light-dark(#111, #ddd);
-  --visited-a: light-dark(gray, lightgray);
   --blockquote-bg: light-dark(whitesmoke, #444444);
   --blockquote-border: light-dark(lightgray, #888888);
-  --hr: color-mix(in srgb, var(--text) 55%, transparent 45%);
+  --hr: color-mix(in srgb, var(--text) 55%, var(--bg) 45%);
   /* Code themes are Atom One Light and Atom One Dark
      with background colors slightly adjusted. */
   --code-base: light-dark(#fbf8f4, #282c34c0);
@@ -632,4 +706,102 @@ code.hljs {
 }
 .hljs-link {
   text-decoration: underline;
+}
+
+.tree {
+  margin: 0;
+  padding: 0;
+}
+
+.tree li {
+  list-style-type: none;
+}
+
+.tree li p {
+  font-size: 0.8em;
+  color: var(--hr);
+  margin: 0 0 0 0.8rem;
+  line-height: 1.2;
+  max-width: 480px;
+}
+
+.tree .entry {
+  padding-top: 0.8em;
+  width: 100%;
+  line-height: 0.9;
+}
+
+.tree .entry a {
+  width: 100%;
+  display: flex;
+  gap: 0.15em;
+}
+
+.tree .entry a::before {
+  margin-top: 0.24em;
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.tree figcaption:has(+ p) {
+  padding-bottom: 0.3em;
+}
+
+.tree details {
+  display: block;
+}
+
+.tree details details {
+  margin-bottom: -0.5px;
+}
+
+.tree details > ul {
+  margin-left: 0.5em;
+}
+
+.tree details > summary {
+  display: block;
+  text-transform: lowercase;
+  font-feature-settings: "smcp";
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.tree summary::-webkit-details-marker {
+  display: none;
+}
+
+.tree details > summary::before {
+  --icon: url("icon/folder.svg");
+  content: "";
+  display: inline-block;
+  background-color: var(--hr);
+  mask: var(--icon) no-repeat 50% 50%;
+  mask-size: cover;
+  width: 0.62em;
+  height: 0.62em;
+  vertical-align: middle;
+  margin-right: 0.2em;
+}
+
+.tree details:not([open]) {
+  padding-bottom: 0.2em;
+}
+
+.tree details[open] > summary::before {
+  --icon: url("icon/folder-open.svg");
+}
+
+.more {
+  margin-top: 2em;
+}
+
+.more > figcaption {
+  font-style: italic;
+  margin-bottom: -0.4em;
+}
+
+.message {
+  font-style: italic;
+  text-align: center;
 }

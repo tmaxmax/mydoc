@@ -20,7 +20,7 @@ import (
 type Tree struct {
 	Name     string
 	Href     string
-	Dir      string `json:"-"`
+	Dir      string
 	Date     DateMeta
 	Children []Child
 }
@@ -53,7 +53,10 @@ func (t Tree) Extract(depth int) Tree {
 	if depth > 0 {
 		for _, child := range t.Children {
 			if ct, ok := child.(Tree); ok {
-				c.Children = append(c.Children, ct.Extract(depth-1))
+				ct = ct.Extract(depth - 1)
+				if len(ct.Children) > 0 || ct.Href != "" {
+					c.Children = append(c.Children, ct)
+				}
 			} else {
 				c.Children = append(c.Children, child)
 			}
@@ -204,6 +207,10 @@ func hrefFromPath(p string) string {
 		p = strings.TrimSuffix(p, "/")
 	}
 	return p
+}
+
+func slugFromPath(p string) string {
+	return strings.ReplaceAll(hrefFromPath(p), "/", "-")
 }
 
 func pickTitleSubtitle(meta, index Metadata) (title, subtitle string) {

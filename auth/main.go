@@ -329,7 +329,10 @@ func run() error {
 		sctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 
-		return errors.Join(srv.Shutdown(sctx), registerSrv.Shutdown(sctx))
+		rerr := make(chan error)
+		go func() { rerr <- registerSrv.Shutdown(ctx) }()
+
+		return errors.Join(srv.Shutdown(sctx), <-rerr)
 	}
 }
 

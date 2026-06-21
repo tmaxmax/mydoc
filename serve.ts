@@ -28,13 +28,13 @@ const PORT = Number.parseInt(process.env.PORT || "") || 8080;
 let AUTH_PORT = Number.parseInt(process.env.AUTH_PORT || "") || 9000;
 if (AUTH_PORT === PORT) AUTH_PORT++;
 
-type Change = { kind: "M" | "D"; path: string };
+type Change = { kind: "A" | "M" | "D"; path: string };
 
 async function build(signal?: AbortSignal, changed?: Change[], full?: boolean) {
   try {
     const args = ["run", "./build", `-in=${IN_DIR}`, `-out=${OUT_DIR}`].concat(full ? ["-full"] : []);
     const { promise, resolve, reject } = Promise.withResolvers();
-    const child = execFile("go", args, { signal }, (err, stdout, stderr) => {
+    const child = execFile("go", args, { signal, env: { ...process.env, DEV: "1" } }, (err, stdout, stderr) => {
       if (err) reject(err);
       else resolve({ stdout, stderr });
     });
@@ -74,6 +74,7 @@ function injectScript(html: string) {
 function startAuthProxy() {
   return spawn("go", ["run", "./auth"], {
     stdio: "inherit",
+    detached: true,
     env: {
       ...process.env,
       GOEXPERIMENT: "jsonv2",
@@ -88,8 +89,21 @@ function startAuthProxy() {
   });
 }
 
-console.info("Building . . .");
-if (!(await build(undefined, undefined, true))) process.exit(1);
+async function tryReadFile(...paths: string[]) {
+  let lastErr: any;
+  for (const p of paths) {
+    try {
+      return [await readFile(p), mime.getType(path.extname(p).replace(".", "")) || "application/octet-stream"] as const;
+    } catch (err: any) {
+      lastErr = err;
+      if (err.code !== "ENOENT" && err.code !== "EISDIR") {
+        throw err;
+      }
+    }
+  }
+  lastErr.code = "ENOENT";
+  throw lastErr;
+}
 
 const server = createServer(async (req, res) => {
   try {
@@ -164,22 +178,22 @@ wss.on("connection", (ws) => {
 
 const PATCH_FONTS = "patch_katex_fonts.py";
 
-const watcher = chokidar.watch(["templates", "static", "filters", PATCH_FONTS, DEFAULTS, IN_DIR], {
+const watcher = chokidar.watch(["templates", "static", "filters", "build", PATCH_FONTS, DEFAULTS, IN_DIR], {
   ignored: (p) => path.basename(p).startsWith("."),
   persistent: true,
   ignoreInitial: true,
+  awaitWriteFinish: true,
+  atomic: true,
 });
 
 let rebuildTimeout: NodeJS.Timeout | undefined, controller: AbortController | undefined;
 let changed: Change[] = [];
 
-function onChange(changedPath: string, kind: "M" | "D") {
+function onChange({ path: changedPath, kind }: Change) {
   clearTimeout(rebuildTimeout);
   controller?.abort();
 
   rebuildTimeout = setTimeout(async () => {
-    console.info(`Rebuilding ${changedPath} . . .`);
-
     if (changedPath.startsWith("static/")) {
       await copyFile(changedPath, `${OUT_DIR}/.assets/${changedPath.replace(/^static\//, "")}`);
       clients.forEach((c) => c.send("reload"));
@@ -188,6 +202,7 @@ function onChange(changedPath: string, kind: "M" | "D") {
 
     const inDir = changedPath.startsWith(IN_DIR);
     if (inDir) {
+      changedPath = changedPath.replace(IN_DIR + "/", "");
       const existing = changed.find((c) => c.path === changedPath);
       if (existing) {
         existing.kind = kind;
@@ -195,6 +210,8 @@ function onChange(changedPath: string, kind: "M" | "D") {
         changed.push({ path: changedPath, kind });
       }
     }
+
+    console.info(`Rebuilding ${changedPath} . . .`);
 
     controller = new AbortController();
     if (await build(controller.signal, changed, !inDir)) {
@@ -205,28 +222,24 @@ function onChange(changedPath: string, kind: "M" | "D") {
   }, 150);
 }
 
-watcher.on("change", (path) => onChange(path, "M"));
-watcher.on("unlink", (path) => onChange(path, "D"));
-watcher.on("error", (err) => console.error("Watcher error:", err));
+console.info("Building . . .");
+if (!(await build(undefined, undefined, true))) process.exit(1);
 
-startAuthProxy().on("error", (err) => {
+watcher
+  .on("add", (path) => onChange({ path, kind: "A" }))
+  .on("change", (path) => onChange({ path, kind: "M" }))
+  .on("unlink", (path) => onChange({ path, kind: "D" }))
+  .on("error", (err) => console.error("Watcher error:", err));
+
+const auth = startAuthProxy();
+auth.on("error", (err) => {
   console.error("Start auth proxy:", err);
 });
 
-server.listen(PORT, () => console.info(`Server running at http://localhost:${PORT}`));
+process.on("SIGINT", (signal) => {
+  controller?.abort();
+  process.kill(-auth.pid!, signal);
+  process.exit();
+});
 
-async function tryReadFile(...paths: string[]) {
-  let lastErr: any;
-  for (const p of paths) {
-    try {
-      return [await readFile(p), mime.getType(path.extname(p).replace(".", "")) || "application/octet-stream"] as const;
-    } catch (err: any) {
-      lastErr = err;
-      if (err.code !== "ENOENT" && err.code !== "EISDIR") {
-        throw err;
-      }
-    }
-  }
-  lastErr.code = "ENOENT";
-  throw lastErr;
-}
+server.listen(PORT, () => console.info(`Server running at http://localhost:${PORT}`));

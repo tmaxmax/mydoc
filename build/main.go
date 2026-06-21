@@ -90,7 +90,12 @@ func run() error {
 			depth = 5
 		}
 		if t.Href != "" {
-			trees[t.Dir] = t.Extract(depth)
+			e := t.Extract(depth)
+			e.Children = slices.DeleteFunc(e.Children, func(c Child) bool {
+				a, ok := c.(Article)
+				return ok && a.Index
+			})
+			trees[t.Dir] = e
 		}
 	}
 
@@ -137,19 +142,19 @@ func run() error {
 		fmt.Fprintln(os.Stderr, "DIFF BUILD")
 
 		seen := map[string]struct{}{}
-		toRebuild := []string(nil)
+
+		var toRebuild []string
+		if hasIndex("/") {
+			toRebuild = append(toRebuild, indexFile)
+		}
 
 		for change := range changes(os.Stdin, &err) {
 			if hasDot(change.Path) {
 				continue
 			}
 
-			dir := path.Dir("/" + change.Path)
-			if hasIndex(path.Join(inDir, dir)) {
+			if dir := path.Dir("/" + change.Path); hasIndex(dir) {
 				toRebuild = append(toRebuild, path.Join(dir, indexFile))
-			}
-			if path.Base(change.Path) == indexFile && (change.Status == StatusAdded || change.Status == StatusDeleted) {
-				toRebuild = append(toRebuild, filesInDirs[dir]...)
 			}
 
 			seen[change.Path] = struct{}{}
@@ -168,7 +173,7 @@ func run() error {
 			}
 		}
 
-		if slices.ContainsFunc(changed, func(c Change) bool { return path.Ext(c.Path) == ".md" }) {
+		if slices.ContainsFunc(changed, func(c Change) bool { return path.Ext(c.Path) == ".md" }) && os.Getenv("DEV") == "" {
 			fmt.Fprintln(os.Stderr, "Patch KaTeX fonts...")
 			if err := patchKatexFonts(ctx); err != nil {
 				return fmt.Errorf("patch KaTeX: %w", err)
@@ -181,14 +186,19 @@ func run() error {
 
 		modify, outPath := os.Link, ""
 		if ext := path.Ext(change.Path); ext == ".md" {
-			outPath = filepath.Join(outDir, filepath.FromSlash(strings.TrimSuffix(change.Path, ext)+".html"))
+			if isIndex := path.Base(change.Path) == indexFile; !isIndex || change.Path != indexFile {
+				outPath = filepath.Join(outDir, filepath.FromSlash(strings.TrimSuffix(change.Path, ext)+".html"))
 
-			var meta pandocMetadata
-			if path.Base(change.Path) == indexFile {
-				meta.Tree = new(trees[path.Dir("/"+change.Path)])
+				meta := pandocMetadata{IndexHref: "/#tree-" + slugFromPath(change.Path)}
+				if isIndex {
+					meta.Tree = new(trees[path.Dir("/"+change.Path)])
+				}
+
+				modify = func(in, out string) error { return pandoc(ctx, meta, in, out) }
+			} else {
+				outPath = outDir
+				modify = buildIndex(ctx, trees["/"])
 			}
-
-			modify = func(in, out string) error { return pandoc(ctx, meta, in, out) }
 		} else {
 			outPath = filepath.Join(outDir, filepath.FromSlash(change.Path))
 		}
@@ -317,7 +327,9 @@ func nullStream(r *bufio.Reader, errp *error) iter.Seq[string] {
 }
 
 type pandocMetadata struct {
-	Tree *Tree
+	Tree      *Tree
+	IndexHref string
+	Message   string
 }
 
 func pandoc(ctx context.Context, meta pandocMetadata, inPath, outPath string) error {
@@ -333,17 +345,14 @@ func pandoc(ctx context.Context, meta pandocMetadata, inPath, outPath string) er
 	}
 
 	cmd := exec.CommandContext(ctx, "pandoc",
-		"--quiet",
 		"-d", filepath.Join("defaults", "archive.yml"),
 		"--metadata-file", f.Name(),
 		inPath,
 		"-o", outPath,
 	)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("%w\n%s", err, out)
-	}
+	cmd.Stderr = os.Stderr
 
-	return nil
+	return cmd.Run()
 }
 
 func patchKatexFonts(ctx context.Context) error {
@@ -393,4 +402,43 @@ func copyDir(inDir, outDir string) error {
 	}
 
 	return os.CopyFS(outDir, dir.FS())
+}
+
+func buildIndex(ctx context.Context, tree Tree) func(oldPath, outDir string) error {
+	publicTree := tree
+	if tree.Dir == "/" {
+		publicTree.Children = slices.Clone(tree.Children)
+		i := slices.IndexFunc(publicTree.Children, func(c Child) bool {
+			t, ok := c.(Tree)
+			return ok && t.Name == "me"
+		})
+		if i >= 0 {
+			t := publicTree.Children[i].(Tree)
+			t.Children = []Child{Article{
+				Title:       "login",
+				Description: "Are you me? Then login.",
+				Href:        "/auth/login",
+			}}
+			publicTree.Children = append(slices.Delete(publicTree.Children, i, i+1), t)
+		}
+	}
+
+	return func(oldPath, outDir string) error {
+		if err := pandoc(ctx, pandocMetadata{Tree: new(publicTree)}, oldPath, filepath.Join(outDir, "index.html")); err != nil {
+			return fmt.Errorf("build public index: %w", err)
+		}
+		if err := pandoc(ctx, pandocMetadata{Tree: new(tree)}, oldPath, filepath.Join(outDir, ".private.index.html")); err != nil {
+			return fmt.Errorf("build private index: %w", err)
+		}
+
+		meta := pandocMetadata{
+			Message: "The path you seek has never been or is no more.\n\nMay you find back your way.",
+			Tree:    new(publicTree),
+		}
+		if err := pandoc(ctx, meta, oldPath, filepath.Join(outDir, ".404.index.html")); err != nil {
+			return fmt.Errorf("build 404: %w", err)
+		}
+
+		return nil
+	}
 }

@@ -45,7 +45,7 @@
           )
           .then((res) => {
             if (res.ok) {
-              window.location.href = redirectURL
+              window.location.href = redirectURL.startsWith('/auth/login') ? '/' : redirectURL
             } else {
               return res.text()
             }
