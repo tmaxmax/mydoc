@@ -200,7 +200,7 @@ nav:has(+ main > header.index) {
 }
 
 @media (min-width: 820px) {
-  nav:has(+ main > header) {
+  nav {
     position: fixed;
     right: 1rem;
   }
