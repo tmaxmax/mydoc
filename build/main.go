@@ -144,9 +144,6 @@ func run() error {
 		seen := map[string]struct{}{}
 
 		var toRebuild []string
-		if hasIndex("/") {
-			toRebuild = append(toRebuild, indexFile)
-		}
 
 		for change := range changes(os.Stdin, &err) {
 			if hasDot(change.Path) {
@@ -154,7 +151,7 @@ func run() error {
 			}
 
 			if dir := path.Dir("/" + change.Path); hasIndex(dir) {
-				toRebuild = append(toRebuild, path.Join(dir, indexFile))
+				toRebuild = append(toRebuild, path.Join(strings.TrimPrefix(dir, "/"), indexFile))
 			}
 
 			seen[change.Path] = struct{}{}
@@ -164,12 +161,17 @@ func run() error {
 			return fmt.Errorf("read input: %w", err)
 		}
 
+		if len(changed) > 0 && hasIndex("/") {
+			toRebuild = append(toRebuild, indexFile)
+		}
+
 		for _, p := range toRebuild {
 			if _, ok := seen[p]; !ok {
 				changed = append(changed, Change{
 					Status: StatusModified,
 					Path:   p,
 				})
+				seen[p] = struct{}{}
 			}
 		}
 
