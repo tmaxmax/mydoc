@@ -372,7 +372,6 @@ a.index-link {
   margin: 2rem auto 0 auto;
   font-size: 1.2em;
   font-variant-alternates: styleset(fleurons);
-  view-transition-name: index-link;
 }
 
 a.index-link::after {
@@ -800,8 +799,4 @@ code.hljs {
 .message {
   font-style: italic;
   text-align: center;
-}
-
-@view-transition {
-  navigation: auto;
 }

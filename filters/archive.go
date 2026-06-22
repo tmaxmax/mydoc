@@ -33,10 +33,6 @@ func run() error {
 				break
 			}
 		}
-	} else {
-		for i := range tree.Children {
-			tree.Children[i].IsReadMore = true
-		}
 	}
 
 	return t.ExecuteTemplate(os.Stdout, "tree", tree.Children)
@@ -46,13 +42,11 @@ type Child struct {
 	Date string
 	Href string
 
-	Title           template.HTML
-	Subtitle        template.HTML
-	Description     string
-	Folder          string
-	Index           bool
-	TitleIsSubtitle bool
-	IsReadMore      bool `json:"-"`
+	Title       template.HTML
+	Subtitle    template.HTML
+	Description string
+	Folder      string
+	Index       bool
 
 	Name     string
 	Dir      string
@@ -62,19 +56,6 @@ type Child struct {
 
 func (c Child) Slug() string {
 	return strings.ReplaceAll(strings.TrimPrefix(c.Href, "/"), "/", "-")
-}
-
-func (c Child) ViewTransitionName() string {
-	name := ""
-	if c.TitleIsSubtitle {
-		name = "sub-" + c.Slug()
-	} else {
-		name = "title-" + c.Slug()
-	}
-	if c.IsReadMore {
-		name = "rm-" + name
-	}
-	return name
 }
 
 func (c Child) IsTree() bool {
