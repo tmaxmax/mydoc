@@ -220,6 +220,7 @@ h2 {
   margin: 1.4rem auto 0.9rem auto;
   font-variant-caps: all-small-caps;
   font-weight: 400;
+  line-height: 0.9;
   letter-spacing: 0.05em;
   font-size: 1.2em;
 }
