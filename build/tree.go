@@ -88,13 +88,14 @@ type Child interface {
 }
 
 type Article struct {
-	Title       string
-	Subtitle    string
-	Date        DateMeta
-	Description string
-	Href        string
-	Folder      string
-	Index       bool
+	Title           string
+	Subtitle        string
+	Date            DateMeta
+	Description     string
+	Href            string
+	Folder          string
+	Index           bool
+	TitleIsSubtitle bool
 }
 
 func (a Article) compare(b Child) int {
@@ -156,7 +157,7 @@ func buildTree(entrypoint string, dirs, filesInDirs map[string][]string, inDir s
 			a.Title = cmp.Or(meta.Title, meta.PageTitle)
 			a.Subtitle = cmp.Or(meta.Subtitle, meta.TitlePrefix)
 		} else {
-			a.Title, a.Subtitle = pickTitleSubtitle(meta, metas[iMeta])
+			a.Title, a.Subtitle, a.TitleIsSubtitle = pickTitleSubtitle(meta, metas[iMeta])
 		}
 		if a.Date.Compare(t.Date) > 0 {
 			t.Date = a.Date
@@ -213,15 +214,16 @@ func slugFromPath(p string) string {
 	return strings.ReplaceAll(hrefFromPath(p), "/", "-")
 }
 
-func pickTitleSubtitle(meta, index Metadata) (title, subtitle string) {
+func pickTitleSubtitle(meta, index Metadata) (title, subtitle string, fromSubtitle bool) {
 	title = cmp.Or(meta.Title, meta.PageTitle)
 	subtitle = cmp.Or(meta.Subtitle, meta.TitlePrefix)
 	if subtitle == "" {
 		return
 	}
-	if meta.PageTitle == index.PageTitle || (meta.Title != "" && index.Title == meta.Title) {
+	if (meta.Title == "" && meta.PageTitle == index.PageTitle) || (meta.Title != "" && index.Title == meta.Title) {
 		title = subtitle
 		subtitle = ""
+		fromSubtitle = true
 	}
 	return
 }

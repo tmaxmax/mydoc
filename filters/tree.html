@@ -11,7 +11,12 @@
   <a href="{{ .Href }}" class="entry page" id="tree-{{ .Slug }}">{{ .Name }}</a>
   {{ end }} {{ else }}
   <figure>
-    <figcaption data-folder="{{ .Folder }}" class="entry" id="tree-{{ .Slug }}">
+    <figcaption
+      data-folder="{{ .Folder }}"
+      class="entry"
+      id="tree-{{ .Slug }}"
+      style="view-transition-name: {{ .ViewTransitionName }};"
+    >
       <a href="{{ .Href }}" class="page">{{ .Title }}</a>
     </figcaption>
     {{ if .Description }}

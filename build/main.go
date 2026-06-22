@@ -191,7 +191,7 @@ func run() error {
 			if isIndex := path.Base(change.Path) == indexFile; !isIndex || change.Path != indexFile {
 				outPath = filepath.Join(outDir, filepath.FromSlash(strings.TrimSuffix(change.Path, ext)+".html"))
 
-				meta := pandocMetadata{IndexHref: "/#tree-" + slugFromPath(change.Path)}
+				meta := pandocMetadata{Slug: slugFromPath(change.Path)}
 				if isIndex {
 					meta.Tree = new(trees[path.Dir("/"+change.Path)])
 				}
@@ -329,9 +329,9 @@ func nullStream(r *bufio.Reader, errp *error) iter.Seq[string] {
 }
 
 type pandocMetadata struct {
-	Tree      *Tree
-	IndexHref string
-	Message   string
+	Tree    *Tree
+	Slug    string
+	Message string
 }
 
 func pandoc(ctx context.Context, meta pandocMetadata, inPath, outPath string) error {
@@ -426,17 +426,16 @@ func buildIndex(ctx context.Context, tree Tree) func(oldPath, outDir string) err
 	}
 
 	return func(oldPath, outDir string) error {
-		if err := pandoc(ctx, pandocMetadata{Tree: new(publicTree), IndexHref: "/"}, oldPath, filepath.Join(outDir, "index.html")); err != nil {
+		if err := pandoc(ctx, pandocMetadata{Tree: new(publicTree)}, oldPath, filepath.Join(outDir, "index.html")); err != nil {
 			return fmt.Errorf("build public index: %w", err)
 		}
-		if err := pandoc(ctx, pandocMetadata{Tree: new(tree), IndexHref: "/"}, oldPath, filepath.Join(outDir, ".private.index.html")); err != nil {
+		if err := pandoc(ctx, pandocMetadata{Tree: new(tree)}, oldPath, filepath.Join(outDir, ".private.index.html")); err != nil {
 			return fmt.Errorf("build private index: %w", err)
 		}
 
 		meta := pandocMetadata{
-			Message:   "The path you seek has never been or is no more.\n\nMay you find back your way.",
-			Tree:      new(publicTree),
-			IndexHref: "/",
+			Message: "The path you seek has never been or is no more.\n\nMay you find back your way.",
+			Tree:    new(publicTree),
 		}
 		if err := pandoc(ctx, meta, oldPath, filepath.Join(outDir, ".404.index.html")); err != nil {
 			return fmt.Errorf("build 404: %w", err)

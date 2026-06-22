@@ -49,9 +49,9 @@
       $endif$
       $if(title)$
       <header id="title" $if(header-style)$class="$header-style$"$endif$>
-        <h1>$title$</h1>
+        <h1 $if(Slug)$style="view-transition-name: title-$Slug$;"$endif$><span $if(Slug)$style="view-transition-name: rm-title-$Slug$;"$endif$>$title$</span></h1>
         $if(subtitle)$
-        <p>$subtitle$</p>
+        <p $if(Slug)$style="view-transition-name: sub-$Slug$;"$endif$><span $if(Slug)$style="view-transition-name: rm-sub-$Slug$;"$endif$>$subtitle$</span></p>
         $endif$
       </header>
       $endif$
@@ -77,7 +77,7 @@ $body$
         </ul>
       </figure>
       $endif$
-      <a href="$IndexHref$" class="index-link">></a>
+      <a href="$if(Slug)$/#tree-$Slug$$else$/$endif$" class="index-link">></a>
       $if(style)$
       </div>
       $endif$
