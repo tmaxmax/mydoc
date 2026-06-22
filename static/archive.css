@@ -568,7 +568,7 @@ details summary {
 }
 
 @media (min-width: 475px) {
-  .book {
+  .book p {
     hyphens: auto;
     text-align: justify;
     text-justify: inter-word;
