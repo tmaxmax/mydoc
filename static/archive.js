@@ -59,7 +59,7 @@ function openAncestorDetails(el) {
 
 function revealHashTarget() {
   if (!location.hash) return;
-  const target = document.getElementById(location.hash.slice(1));
+  const target = document.getElementById(CSS.escape(location.hash.slice(1)));
   if (target) {
     openAncestorDetails(target);
   }
