@@ -333,7 +333,7 @@ a {
   --color: color-mix(in srgb, var(--text) 70%, var(--bg) 30%);
   --icon: url("icon/link.svg");
   color: var(--color);
-  text-decoration: none;
+  text-decoration: underline 0.5px solid color-mix(in srgb, var(--text) 40%, var(--bg) 60%);
 }
 
 a.page {
@@ -342,6 +342,7 @@ a.page {
   font-variant-caps: all-small-caps;
   letter-spacing: 0.05em;
   margin-right: 0.05em;
+  text-decoration: none;
 }
 
 a.page::before,
@@ -385,6 +386,7 @@ a.index-link {
   margin: 2rem auto 0 auto;
   font-size: 1.2em;
   font-variant-alternates: styleset(fleurons);
+  text-decoration: none;
 }
 
 a.index-link::after {
@@ -739,6 +741,7 @@ code.hljs {
   user-select: none;
   font-variant-caps: all-small-caps;
   cursor: pointer;
+  text-wrap: balance;
 }
 
 .tree .entry a {
