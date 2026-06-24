@@ -414,6 +414,14 @@ ul {
   padding-left: 1em;
 }
 
+@supports (hanging-punctuation: first) {
+  /* for Safari as content doesn't work and dot isn't removed ugh */
+  ol,
+  ul {
+    padding-left: 1.3em;
+  }
+}
+
 li::marker {
   font-variant-numeric: oldstyle-nums; /* tabular by default */
   color: var(--text);
