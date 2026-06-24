@@ -221,6 +221,14 @@ header p {
   text-wrap: balance;
 }
 
+.break {
+  display: none;
+}
+
+header h1 .break {
+  display: table;
+}
+
 h2 {
   margin: 1.4rem auto 0.9rem auto;
   font-variant-caps: all-small-caps;
@@ -784,6 +792,10 @@ code.hljs {
 
 .tree li {
   list-style-type: none;
+}
+
+.tree li::marker {
+  content: "";
 }
 
 .tree li p {
