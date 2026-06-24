@@ -57,6 +57,10 @@ body {
     calc(env(safe-area-inset-bottom) + 2rem) calc(env(safe-area-inset-left) + 1rem);
   width: 100%;
   max-width: 100%;
+  line-height: 1.4;
+}
+
+body:has(p .katex) {
   line-height: 1.45;
 }
 
@@ -98,6 +102,7 @@ main {
 }
 
 main > *,
+main > .together > *,
 main > details > * {
   visibility: visible;
   max-width: 650px;
@@ -404,6 +409,53 @@ details summary {
   margin: 1rem auto;
 }
 
+ol,
+ul {
+  padding-left: 1em;
+}
+
+li::marker {
+  font-variant-numeric: oldstyle-nums; /* tabular by default */
+  color: var(--text);
+}
+
+ul > li::marker {
+  content: "\2022\2002";
+  display: inline-block;
+}
+
+ol > li::marker {
+  content: counter(list-item) "\2002";
+}
+
+.together {
+  display: contents;
+}
+
+*:has(+ .together) {
+  margin-bottom: 0;
+}
+
+.together + * {
+  margin-top: 0;
+}
+
+@media (min-width: 768px) {
+  ol,
+  ul {
+    padding-left: 0;
+  }
+
+  .together:has(:is(ol, ul)) + * {
+    margin-top: 0.2em;
+  }
+}
+
+.mb {
+  display: inline-block;
+  margin-bottom: 0.9em;
+}
+
 #dark-mode {
   display: grid;
   width: max-content;
@@ -559,7 +611,6 @@ details summary {
 .poem,
 .poem-indent {
   margin: 0 auto;
-  line-height: 1.4;
 }
 
 .book {
