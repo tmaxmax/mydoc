@@ -824,7 +824,6 @@ code.hljs {
   user-select: none;
   -webkit-user-select: none;
   font-variant-caps: all-small-caps;
-  cursor: pointer;
   text-wrap: balance;
 }
 
