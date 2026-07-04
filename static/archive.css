@@ -189,6 +189,7 @@ header.index {
   padding-bottom: 0;
   margin-top: 1.5em;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 header.index h1 {
@@ -290,6 +291,7 @@ math * {
 .katex-display > .katex > .katex-html > .tag {
   position: fixed;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .katex-display:not(:has(.tag)) > .katex {
@@ -401,6 +403,8 @@ a.index-link {
   font-size: 1.2em;
   font-variant-alternates: styleset(fleurons);
   text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 a.index-link::after {
@@ -414,6 +418,7 @@ details {
 
 details summary {
   user-select: none;
+  -webkit-user-select: none;
   margin: 1rem auto;
 }
 
@@ -476,6 +481,7 @@ ol > li::marker {
   display: grid;
   width: max-content;
   user-select: none;
+  -webkit-user-select: none;
   border: none;
   padding: 0;
 }
@@ -508,6 +514,7 @@ ol > li::marker {
   border: 1px solid var(--blockquote-border);
   background-color: var(--bg);
   user-select: none;
+  -webkit-user-select: none;
 }
 
 #dark-mode label {
@@ -815,6 +822,7 @@ code.hljs {
   width: 100%;
   line-height: 0.9;
   user-select: none;
+  -webkit-user-select: none;
   font-variant-caps: all-small-caps;
   cursor: pointer;
   text-wrap: balance;
