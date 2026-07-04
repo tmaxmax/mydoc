@@ -76,6 +76,13 @@ const action: pandoc.FilterActionAsync = (value, format, meta) => {
     }
   }
 
+  if (value.t === "Para" && value.c.length) {
+    const v = value.c[0];
+    if (v.t === "Str" && v.c === "—") {
+      value.c.unshift(pandoc.Span(pandoc.attributes({ classes: ["dialogue"] }), []));
+    }
+  }
+
   return value;
 };
 
