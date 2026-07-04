@@ -859,6 +859,7 @@ code.hljs {
   display: block;
   letter-spacing: 0.05em;
   margin: 0;
+  cursor: pointer;
 }
 
 .tree summary::-webkit-details-marker {
