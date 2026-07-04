@@ -658,7 +658,7 @@ ol > li::marker {
 }
 
 .n {
-  hyphens: manual;
+  hyphens: manual !important;
 }
 
 .poem,
