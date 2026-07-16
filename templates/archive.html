@@ -32,7 +32,7 @@
     $for(include-before)$
     $include-before$
     $endfor$
-    <nav data-share-link-root="prepend">
+    <nav data-share-link-root="prepend" $if(header-style)$class="$header-style$"$endif$>
       <fieldset id="dark-mode">
         <legend>Theme preference</legend>
         <input type="radio" id="dark-self" name="theme" value="self" checked />

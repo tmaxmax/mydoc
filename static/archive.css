@@ -200,9 +200,13 @@ header.index h1 {
   font-variant-alternates: styleset(q);
 }
 
-nav:has(+ main > header.index) {
+nav.index {
   position: fixed;
   right: 1rem;
+}
+
+nav.index + main header {
+  margin-top: 1.5em;
 }
 
 @media (min-width: 820px) {
@@ -688,7 +692,7 @@ ol > li::marker {
 
   --bg: light-dark(#fffff8, black);
   --text: light-dark(#111, #ddd);
-  --indent: clamp(1em, 5vw, 1.2em);
+  --indent: clamp(1em, 4.6vw, 1.4em);
 
   --bg: light-dark(#fffff8, black);
   --text: light-dark(#111, #ddd);
@@ -818,13 +822,19 @@ code.hljs {
 }
 
 .tree .entry {
-  padding-top: 0.8em;
+  padding-top: 0.4em;
+  padding-bottom: 0.4em;
   width: 100%;
   line-height: 0.9;
   user-select: none;
   -webkit-user-select: none;
   font-variant-caps: all-small-caps;
   text-wrap: balance;
+}
+
+.tree figure:has(.entry + *),
+.tree figure:has(.entry + *) .entry {
+  padding-bottom: 0.3em;
 }
 
 .tree .entry a {
@@ -837,10 +847,6 @@ code.hljs {
   margin-top: 0.24em;
   margin-right: 0;
   margin-left: 0;
-}
-
-.tree figcaption:has(+ p) {
-  padding-bottom: 0.3em;
 }
 
 .tree details {
@@ -877,10 +883,6 @@ code.hljs {
   height: 0.62em;
   vertical-align: middle;
   margin-right: 0.2em;
-}
-
-.tree details:not([open]) {
-  padding-bottom: 0.2em;
 }
 
 .tree details[open] > summary::before {
