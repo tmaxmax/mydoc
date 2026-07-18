@@ -67,7 +67,13 @@
       </section>
       $endif$
       $endif$
+      $if(poem)$
+      <div class="poem-text">
 $body$
+      </div>
+      $else$
+$body$
+      $endif$
       $if(tree-with-header)$
       $elseif(Tree)$
       <figure class="more">

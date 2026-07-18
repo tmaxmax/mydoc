@@ -374,4 +374,9 @@ if (hasCode) {
   doc.meta["code"] = pandoc.rawToMeta(true);
 }
 
+const style = doc.meta["style"];
+if (style?.t === "MetaInlines" && style.c[0]?.c === "poem") {
+  doc.meta["poem"] = pandoc.rawToMeta(true);
+}
+
 process.stdout.write(JSON.stringify(doc));

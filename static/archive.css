@@ -636,7 +636,7 @@ ol > li::marker {
 
 .book,
 .poem,
-.poem-indent {
+.poem-text {
   margin: 0 auto;
 }
 
@@ -644,16 +644,16 @@ ol > li::marker {
   text-align: left;
 }
 
-.book :not(header, h1, h2, h3, h4, h5, h6, a) {
+.book :not(header, h1, h2, h3, h4, h5, h6, a, .poem-text p) {
   text-indent: var(--indent) each-line;
 }
 
-.book p:first-of-type:not(:has(+ p > .dialogue)) {
+.book > p:first-of-type:not(:has(+ p > .dialogue)) {
   text-indent: 0;
 }
 
 @media (min-width: 525px) {
-  .book :not(header, h1, h2, h3, h4, h5, h6, a) {
+  .book :not(header, h1, h2, h3, h4, h5, h6, a, .poem-text p) {
     hyphens: auto;
     text-align: justify;
     text-justify: inter-word;
@@ -664,27 +664,22 @@ ol > li::marker {
   margin: 0;
 }
 
-.poem p {
-  margin: 0.9em auto;
-}
-
 .n {
   hyphens: manual !important;
 }
 
-.poem,
-.poem-indent {
+.poem-text {
   hyphens: manual;
   text-align: left;
   width: fit-content;
 }
 
-:is(.poem, .poem-indent) p {
+.poem-text p {
   text-indent: var(--indent) each-line hanging;
 }
 
-.poem-indent {
-  padding: 0.2rem var(--indent);
+.book .poem-text {
+  padding: 0 var(--indent);
 }
 
 :root {
