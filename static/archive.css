@@ -48,8 +48,6 @@ html {
   font-weight: 400;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: subpixel-antialiased;
-  background-color: var(--bg);
-  color: var(--text);
 }
 
 body {
@@ -60,12 +58,18 @@ body {
   line-height: 1.4;
 }
 
+@media not print {
+  html {
+    background-color: var(--bg);
+    color: var(--text);
+  }
+}
+
 body:has(p .katex) {
   line-height: 1.45;
 }
 
 nav {
-  visibility: visible;
   max-width: calc(650px + 6.8rem);
   display: flex;
   gap: 0.6rem;
@@ -104,7 +108,6 @@ main {
 main > *,
 main > .together > *,
 main > details > * {
-  visibility: visible;
   max-width: 650px;
   margin-left: auto;
   margin-right: auto;
@@ -154,7 +157,7 @@ h1 {
   margin: 0;
   font-size: 2em;
   font-weight: 400;
-  line-height: 0.9;
+  line-height: 1;
   font-variant-caps: all-small-caps;
 }
 
@@ -165,8 +168,11 @@ h1 {
     "pcap" 1;
 }
 
-:is(h1, h2, a.page, .entry) .sensitive .smcp {
+.smcp {
   font-variant-caps: all-small-caps;
+}
+
+:is(h1, h2, a.page, .entry) .sensitive .smcp {
   font-size: 0.9em;
   font-weight: 450;
 }
@@ -174,7 +180,7 @@ h1 {
 header {
   display: flex;
   flex-direction: column;
-  gap: 0.25em;
+  gap: 0.3em;
   margin: 0.5em auto 1.2em auto;
   padding-bottom: 0.6em;
   border-bottom: 0.5px solid;
@@ -243,7 +249,10 @@ h2 {
   font-size: 1.2em;
 }
 
-h3 {
+h3,
+.book h2 {
+  font-variant-caps: normal;
+  line-height: 1.25;
   margin: 1.4rem auto 0.9rem auto;
   font-style: italic;
   font-size: 1.1em;
@@ -491,10 +500,72 @@ ol > li::marker {
 }
 
 @media print {
-  #dark-mode {
-    visibility: hidden;
+  :root {
+    color-scheme: light;
   }
-  /* TODO: Avoid breaking images and code blocks across pages. */
+
+  html {
+    font-size: 13pt;
+  }
+
+  body {
+    line-height: 1.25;
+    padding: 0;
+  }
+
+  nav {
+    display: none;
+  }
+
+  p {
+    widows: 3;
+    orphans: 3;
+  }
+
+  header,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    break-after: avoid;
+  }
+
+  header {
+    border-bottom: none;
+    background-image: linear-gradient(to bottom, var(--hr), var(--hr));
+    background-size: 100% 0.2pt;
+    background-repeat: no-repeat;
+    background-position: bottom;
+  }
+
+  main > *,
+  main > .together > *,
+  main > details > * {
+    max-width: 360pt;
+  }
+
+  main pre:has(> code),
+  main p:has(.katex-display) {
+    min-width: min(100vw, 360pt);
+    width: fit-content;
+    max-width: 100vw;
+    break-inside: avoid;
+  }
+
+  img {
+    break-inside: avoid;
+  }
+
+  a.index-link,
+  .more {
+    display: none;
+  }
+
+  .poem-text p {
+    break-inside: none;
+  }
 }
 
 .katex:has(~ .katex-display),
@@ -644,16 +715,16 @@ ol > li::marker {
   text-align: left;
 }
 
-.book :not(header, h1, h2, h3, h4, h5, h6, a, .poem-text p) {
+.book > p {
   text-indent: var(--indent) each-line;
 }
 
-.book > p:first-of-type:not(:has(+ p > .dialogue)) {
+.book > :is(header, h1, h2, h3) + p:not(:has(.dialogue)) {
   text-indent: 0;
 }
 
 @media (min-width: 525px) {
-  .book :not(header, h1, h2, h3, h4, h5, h6, a, .poem-text p) {
+  .book > p {
     hyphens: auto;
     text-align: justify;
     text-justify: inter-word;
