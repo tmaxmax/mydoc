@@ -251,6 +251,7 @@ h2 {
 
 h3,
 .book h2 {
+  letter-spacing: normal;
   font-variant-caps: normal;
   line-height: 1.25;
   margin: 1.4rem auto 0.9rem auto;
