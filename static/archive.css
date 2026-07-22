@@ -253,8 +253,8 @@ h3,
 .book h2 {
   letter-spacing: normal;
   font-variant-caps: normal;
-  line-height: 1.25;
-  margin: 1.4rem auto 0.9rem auto;
+  line-height: 1.25rem;
+  margin: 1.45rem auto 1.05rem auto;
   font-style: italic;
   font-size: 1.1em;
 }
@@ -534,13 +534,17 @@ ol > li::marker {
     break-after: avoid;
   }
 
-  header:has(> p):has(+ h2) {
+  header:has(> p) {
     padding-top: 0.9rem;
+  }
+
+  header:has(> p):has(+ h2) {
+    padding-top: 0.7rem;
   }
 
   .book p + h2 {
     margin: 0 auto;
-    padding: 1.4rem 0 0.9rem 0;
+    padding: 1.45rem 0 1.05rem 0;
   }
 
   header {
