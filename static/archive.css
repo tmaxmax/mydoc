@@ -177,6 +177,12 @@ h1 {
   font-weight: 450;
 }
 
+.all-caps {
+  font-size: 0.96em;
+  letter-spacing: 0.02em;
+  font-weight: 410;
+}
+
 header {
   display: flex;
   flex-direction: column;
