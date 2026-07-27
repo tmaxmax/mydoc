@@ -182,8 +182,8 @@ header {
   display: flex;
   flex-direction: column;
   gap: 0.35em;
-  margin: 0 auto 1.25em auto;
-  padding-bottom: 0.5em;
+  margin: 0 auto 1.15em auto;
+  padding-bottom: 0.6em;
   border-bottom: 0.5px solid;
   letter-spacing: 0.05em;
 }
