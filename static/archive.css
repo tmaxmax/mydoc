@@ -48,6 +48,8 @@ html {
   font-weight: 400;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: subpixel-antialiased;
+  background-color: var(--bg);
+  color: var(--text);
 }
 
 body {
@@ -56,13 +58,6 @@ body {
   width: 100%;
   max-width: 100%;
   line-height: 1.35;
-}
-
-@media not print {
-  html {
-    background-color: var(--bg);
-    color: var(--text);
-  }
 }
 
 body:has(p .katex) {
@@ -221,7 +216,7 @@ nav.index + main header {
   margin-top: 1.5em;
 }
 
-@media (min-width: 820px) {
+@media screen and (min-width: 820px) {
   nav {
     position: fixed;
     right: 1rem;
@@ -328,7 +323,7 @@ math * {
   border-radius: 0.5em;
 }
 
-@media (min-width: 375px) {
+@media (min-width: 375px), print {
   .no-wrap {
     white-space: nowrap;
   }
@@ -481,7 +476,7 @@ ol > li::marker {
   margin-top: 0;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 768px), print {
   ol,
   ul {
     padding-left: 0;
@@ -514,6 +509,8 @@ ol > li::marker {
 
   html {
     font-size: 11.5pt;
+    background: none;
+    color: initial;
   }
 
   body {
@@ -593,16 +590,20 @@ ol > li::marker {
 
   a.index-link {
     break-before: avoid;
+    color: initial;
+  }
+
+  a {
+    text-decoration: none;
+  }
+
+  :not(figcaption) > a.page::before,
+  a:not(.page)::after {
+    display: none;
   }
 
   .poem-text p {
     break-inside: avoid;
-  }
-
-  .book > p {
-    hyphens: auto;
-    text-align: justify;
-    text-justify: inter-word;
   }
 }
 
@@ -673,7 +674,7 @@ ol > li::marker {
   --icon: var(--icon-system-theme);
 }
 
-@media (prefers-color-scheme: dark) {
+@media screen and (prefers-color-scheme: dark) {
   :root:has(#dark-mode [value="other"]:checked) {
     color-scheme: light;
   }
@@ -696,7 +697,7 @@ ol > li::marker {
   }
 }
 
-@media (prefers-color-scheme: light) {
+@media screen and (prefers-color-scheme: light) {
   :root:has(#dark-mode [value="other"]:checked) {
     color-scheme: dark;
   }
@@ -761,7 +762,7 @@ ol > li::marker {
   text-indent: 0;
 }
 
-@media (min-width: 525px) {
+@media (min-width: 525px), print {
   .book > p {
     hyphens: auto;
     text-align: justify;
