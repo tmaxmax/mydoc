@@ -146,6 +146,9 @@ func buildTree(entrypoint string, dirs, filesInDirs map[string][]string, inDir s
 	}
 
 	for i, meta := range metas {
+		if meta.Date.Time.IsZero() {
+			continue
+		}
 		a := Article{
 			Date:        meta.Date,
 			Description: meta.Description,
@@ -234,6 +237,7 @@ type Metadata struct {
 	Title       string   `yaml:"title"`
 	Subtitle    string   `yaml:"subtitle"`
 	Lang        string   `yaml:"lang"`
+	Hidden      bool     `yaml:"hidden"`
 }
 
 func metadata(inPath string) (Metadata, error) {
@@ -280,7 +284,7 @@ func (d *DateMeta) UnmarshalJSON(b []byte) (err error) {
 	d.Parts = strings.Count(s, "-")
 	switch d.Parts {
 	case 0:
-		if s == "null" || s == `""` {
+		if s == "null" || s == "" {
 			return
 		}
 		d.Time, err = time.Parse(time.DateOnly[:4], s)
