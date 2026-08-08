@@ -67,3 +67,46 @@ function revealHashTarget() {
 
 window.addEventListener("DOMContentLoaded", revealHashTarget);
 window.addEventListener("hashchange", revealHashTarget);
+
+window.addEventListener("beforeprint", () => {
+  document.querySelectorAll("header h1 .break").forEach((e) => {
+    e.replaceWith(document.createElement("br"));
+  });
+});
+
+window.addEventListener("afterprint", () => {
+  document.querySelectorAll("header h1 br").forEach((e) => {
+    const s = document.createElement("span");
+    s.classList.add("break");
+    e.replaceWith(s);
+  });
+});
+
+let modulePromise;
+let printInFlight = false;
+
+window.addEventListener(
+  "keydown",
+  async (event) => {
+    const isPrint =
+      (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "p";
+
+    if (!isPrint || printInFlight || !document.querySelector(".book")) return;
+    event.preventDefault();
+    printInFlight = true;
+
+    try {
+      // @ts-ignore
+      modulePromise ??= import("/.assets/print-justify.js");
+      const module = await modulePromise;
+      await module.armPrintJustification();
+    } catch (error) {
+      // Printing must remain available if the optional typography bundle fails.
+      console.warn("print-justify: falling back to browser justification", error);
+    } finally {
+      printInFlight = false;
+      window.print();
+    }
+  },
+  { capture: true },
+);

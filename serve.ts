@@ -177,14 +177,18 @@ wss.on("connection", (ws) => {
 });
 
 const PATCH_FONTS = "patch_katex_fonts.py";
+const PRINT_JUSTIFY = "print-justify.ts";
 
-const watcher = chokidar.watch(["templates", "static", "filters", "build", PATCH_FONTS, DEFAULTS, IN_DIR], {
-  ignored: (p) => path.basename(p).startsWith("."),
-  persistent: true,
-  ignoreInitial: true,
-  awaitWriteFinish: true,
-  atomic: true,
-});
+const watcher = chokidar.watch(
+  ["templates", "static", "filters", "build", PATCH_FONTS, PRINT_JUSTIFY, DEFAULTS, IN_DIR],
+  {
+    ignored: (p) => path.basename(p).startsWith("."),
+    persistent: true,
+    ignoreInitial: true,
+    awaitWriteFinish: true,
+    atomic: true,
+  },
+);
 
 let rebuildTimeout: NodeJS.Timeout | undefined, controller: AbortController | undefined;
 let changed: Change[] = [];

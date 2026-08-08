@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/evanw/esbuild/pkg/api"
 )
 
 func main() {
@@ -137,6 +139,11 @@ func run() error {
 		fmt.Fprintln(os.Stderr, "Copy KaTeX assets...")
 		if err := copyKatexFonts(assetsDir); err != nil {
 			return fmt.Errorf("copy KaTeX fonts: %w", err)
+		}
+
+		fmt.Fprintln(os.Stderr, "Build print justification script...")
+		if err := esbuild("print-justify.ts", filepath.Join(assetsDir, "print-justify.js")); err != nil {
+			return fmt.Errorf("build print justify: %w", err)
 		}
 	} else {
 		fmt.Fprintln(os.Stderr, "DIFF BUILD")
@@ -443,4 +450,35 @@ func buildIndex(ctx context.Context, tree Tree) func(oldPath, outDir string) err
 
 		return nil
 	}
+}
+
+func esbuild(entryTS, outputJS string) error {
+	root, err := filepath.Abs(".")
+	if err != nil {
+		return fmt.Errorf("resolve project root: %w", err)
+	}
+
+	result := api.Build(api.BuildOptions{
+		AbsWorkingDir: root,
+		EntryPoints:   []string{entryTS},
+		Outfile:       outputJS,
+		Bundle:        true,
+		Write:         true,
+		Platform:      api.PlatformBrowser,
+		Format:        api.FormatESModule,
+		Target:        api.ESNext,
+		Charset:       api.CharsetUTF8,
+		LogLevel:      api.LogLevelError,
+		LegalComments: api.LegalCommentsEndOfFile,
+	})
+
+	if len(result.Errors) == 0 {
+		return nil
+	}
+
+	messages := make([]error, 0, len(result.Errors))
+	for _, message := range result.Errors {
+		messages = append(messages, errors.New(message.Text))
+	}
+	return fmt.Errorf("esbuild failed: %w", errors.Join(messages...))
 }

@@ -5,6 +5,7 @@ go 1.26.3
 require github.com/go-webauthn/webauthn v0.17.4
 
 require (
+	github.com/evanw/esbuild v0.28.1
 	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/go-webauthn/x v0.2.6 // indirect
