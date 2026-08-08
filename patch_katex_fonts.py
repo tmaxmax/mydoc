@@ -37,7 +37,7 @@ def main():
         "Math-Italic": [
             Patch(
                 source_font=fonts_dir / "cormorant-garamond-italic.ttf",
-                axis_limits={'wght': 570},
+                axis_limits={'wght': 550},
                 feature_tags={'ss03': 1, 'lnum': 1, 'calt': 1, 'kern': 1},
                 codepoints=alnum, 
             ),
