@@ -123,11 +123,7 @@ select {
   font: inherit;
 }
 
-p {
-  text-wrap: pretty;
-  margin: var(--lead) auto;
-}
-
+p,
 blockquote {
   margin: var(--lead) auto;
 }
@@ -817,6 +813,10 @@ ol > li::marker {
 
 .n {
   hyphens: manual !important;
+}
+
+p:not(:has(.n)) {
+  text-wrap: pretty;
 }
 
 .poem,
