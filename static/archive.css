@@ -581,6 +581,8 @@ ol > li::marker {
 
   a.index-link {
     color: initial;
+    height: 0;
+    overflow: visible;
   }
 
   a {
@@ -605,7 +607,6 @@ ol > li::marker {
     display: inline-block;
   }
 
-  a.index-link,
   p:not(:has(> .katex-display)) + :is(p:has(> :is(.katex-display, img)), pre, blockquote),
   .together > :is(ul, ol) {
     break-before: avoid;
@@ -631,16 +632,16 @@ ol > li::marker {
     @bottom-center {
       content: counter(page);
       vertical-align: top;
-      padding-top: 3mm;
+      padding-top: 10mm;
     }
   }
 
   @page :right {
-    margin: 12mm 18mm 17mm 12mm;
+    margin: 12mm 18mm 26mm 12mm;
   }
 
   @page :left {
-    margin: 12mm 12mm 17mm 18mm;
+    margin: 12mm 12mm 26mm 18mm;
   }
 }
 
