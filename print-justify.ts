@@ -78,7 +78,10 @@ export const JUSTIFICATION = {
    * Higher = more tolerant of short final lines.
    * Lower = stronger preference for fuller final lines.
    */
-  finalLineStretchFactor: 0.7,
+  finalLineStretchFactor: 0.9,
+
+  /** What percentage of the measure should a word tail be to hyphenate it. */
+  minLastWordTailRatio: 0.14,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -713,7 +716,8 @@ function layoutSegment(
 
   for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
     const word = words[wordIndex];
-    addWordItems(items, segment.units, word, lang, textMeasurer);
+    const isFinalWord = wordIndex === words.length - 1;
+    addWordItems(items, segment.units, word, lang, textMeasurer, measure, isFinalWord);
 
     if (wordIndex < words.length - 1) {
       const spaceUnit = segment.units[word.endUnit];
@@ -833,6 +837,7 @@ interface CandidateBreak {
   unitIndex: number;
   appendHyphen: boolean;
   explicit: boolean;
+  automatic: boolean;
 }
 
 function addWordItems(
@@ -841,11 +846,17 @@ function addWordItems(
   word: WordRecord,
   lang: string,
   textMeasurer: DOMTextMeasurer,
+  measure: number,
+  isLastWord: boolean,
 ): void {
   const candidates = candidateBreaks(units, word, lang);
   let cursor = word.startUnit;
 
   for (const candidate of candidates) {
+    if (isLastWord && candidate.automatic) {
+      const tailWidth = measureUnitRange(units, candidate.unitIndex, word.endUnit, textMeasurer);
+      if (tailWidth / measure < JUSTIFICATION.minLastWordTailRatio) continue;
+    }
     if (candidate.unitIndex <= cursor || candidate.unitIndex >= word.endUnit) continue;
 
     addBox(items, units, cursor, candidate.unitIndex, textMeasurer);
@@ -902,6 +913,7 @@ function candidateBreaks(units: Unit[], word: WordRecord, lang: string): Candida
         unitIndex: u + 1,
         appendHyphen: true,
         explicit: false,
+        automatic: false,
       });
     }
   }
@@ -915,6 +927,7 @@ function candidateBreaks(units: Unit[], word: WordRecord, lang: string): Candida
           unitIndex: u + 1,
           appendHyphen: false,
           explicit: true,
+          automatic: false,
         });
       }
     }
@@ -954,6 +967,7 @@ function candidateBreaks(units: Unit[], word: WordRecord, lang: string): Candida
             unitIndex,
             appendHyphen: true,
             explicit: false,
+            automatic: true,
           });
         }
       } else {
