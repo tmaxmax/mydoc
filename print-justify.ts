@@ -1,17 +1,15 @@
 /**
- * print-justify-render-corrected.ts
- *
  * Dependencies: tex-linebreak + hyphen only.
- * Corrected print-media version: measurements are taken only after @media print
- * is active; the real painted first-line indent is measured before mutation;
- * source <br> indentation is emulated on the generated line itself; tex-linebreak
+ * Measurements are taken only after @media print
+ * is active; CSS lengths are explicitly converted into the same geometric
+ * coordinate system as DOM measurements; source <br> indentation is emulated on
+ * the generated line itself; tex-linebreak
  * chooses globally optimal breaks; and every rendered line is finally measured
  * in Chromium and nudged to the exact right edge via word-spacing. Source
  * `white-space: nowrap` ranges are kept indivisible.
  */
 
 import {
-  MAX_COST,
   MaxAdjustmentExceededError,
   PARAGRAPH_START,
   adjustmentRatios,
@@ -54,7 +52,7 @@ export const JUSTIFICATION = {
   spaceShrink: 1 / 3,
 
   /** Knuth–Plass penalty for an automatic dictionary hyphen. */
-  hyphenPenalty: 50,
+  hyphenPenalty: 100,
 
   /** Lower penalty for breaking after an already-visible hyphen (non-Romanian). */
   explicitHyphenPenalty: 20,
@@ -69,19 +67,18 @@ export const JUSTIFICATION = {
   initialMaxAdjustmentRatio: 1,
 
   /** Emergency ceiling before leaving the paragraph to Chromium. */
-  maxAdjustmentRatio: 1.75,
+  maxAdjustmentRatio: 2.25,
 
   /** Pattern hyphenator minimum token length. */
   hyphenMinWordLength: 5,
 
-  /** Romanian: never divide tokens already containing a visible hyphen. */
-  protectRomanianHyphenatedWords: true,
-
-  /** Romanian: treat mid-sentence Title Case tokens as probable proper names. */
-  protectRomanianMidSentenceTitlecase: true,
-
-  /** How many lines should a single dialog paragraph span in order to use Knuth–Plass. */
-  dialogueMinLines: 4,
+  /**
+   * Controls how strongly very short final lines are discouraged.
+   *
+   * Higher = more tolerant of short final lines.
+   * Lower = stronger preference for fuller final lines.
+   */
+  finalLineStretchFactor: 0.7,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -264,14 +261,24 @@ function justifyParagraph(paragraph: HTMLElement, textMeasurer: DOMTextMeasurer)
   const originalChildren = Array.from(paragraph.childNodes, (node) => node.cloneNode(true));
   const originalStyle = paragraph.getAttribute("style");
   const paragraphStyle = getComputedStyle(paragraph);
-  const measure = contentBoxWidth(paragraph, paragraphStyle);
-  // At this point @media print is guaranteed to be active, so the computed
-  // text-indent is the authoritative resolved print value. Using the CSS value
-  // avoids trying to infer indentation from a glyph Range (whose geometry is
-  // affected by font side-bearings). Selectors that suppress indentation after
-  // headings naturally compute to 0px here.
-  const indent = parseCssPx(paragraphStyle.textIndent);
-  const baseWordSpacing = parseCssPx(paragraphStyle.wordSpacing);
+
+  // `getComputedStyle()` reports CSS px, while getBoundingClientRect()/Range
+  // measurements can live in a scaled geometric coordinate system (for example
+  // under print zoom / CSS zoom / a scaled ancestor). tex-linebreak must use one
+  // coordinate system consistently, so measure the local CSS-px -> geometry-px
+  // scale once and convert CSS lengths whenever they enter/leave the KP model.
+  const geometryScale = measureGeometryScale(paragraph);
+  const measure = contentBoxWidth(paragraph, paragraphStyle, geometryScale);
+
+  // Keep both forms of the indent. The CSS value is what we write back to DOM;
+  // the geometric value is what we subtract from KP's first-line measure.
+  // Selectors that suppress indentation after headings naturally compute to 0px.
+  const indentCss = parseCssPx(paragraphStyle.textIndent);
+  const indentLayout = cssPxToLayoutPx(indentCss, geometryScale);
+
+  // word-spacing is likewise a CSS length when read/written through style, but
+  // tex-linebreak's measured space/stretch/shrink values are geometric lengths.
+  const baseWordSpacingCss = parseCssPx(paragraphStyle.wordSpacing);
 
   if (!(measure > 0)) return null;
 
@@ -279,9 +286,6 @@ function justifyParagraph(paragraph: HTMLElement, textMeasurer: DOMTextMeasurer)
   const lang = documentLanguage();
   const languageContext = buildLanguageContext(segments, lang);
   const renderedLines: RenderedLine[] = [];
-
-  const isDialogue = paragraph.querySelector(".dialogue") !== null;
-  let maxSegmentLines = 0;
 
   for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
     const segment = segments[segmentIndex];
@@ -292,29 +296,26 @@ function justifyParagraph(paragraph: HTMLElement, textMeasurer: DOMTextMeasurer)
       languageContext.sentenceInitialStarts,
       lang,
       measure,
-      indent,
-      baseWordSpacing,
+      indentLayout,
+      baseWordSpacingCss,
       textMeasurer,
     );
 
-    if (!layout) return null;
+    if (!layout) {
+      console.log(paragraph.textContent);
+      return null;
+    }
 
     const lines = materializeLineMetadata(layout);
-    maxSegmentLines = Math.max(maxSegmentLines, lines.length);
-
     for (let i = 0; i < lines.length; i++) {
       renderedLines.push({
         ...lines[i],
         // The paragraph itself owns its true first-line indent. Only the first
         // line after an author-supplied <br> needs us to emulate `each-line`.
-        indent: segmentIndex > 0 && i === 0 ? indent : 0,
+        indent: segmentIndex > 0 && i === 0 ? indentCss : 0,
         hardBreakAfter: i === lines.length - 1 && segmentIndex < segments.length - 1,
       });
     }
-  }
-
-  if (isDialogue && maxSegmentLines < JUSTIFICATION.dialogueMinLines) {
-    return null;
   }
 
   // Clone every range before altering source nodes. Range endpoints still point
@@ -332,7 +333,7 @@ function justifyParagraph(paragraph: HTMLElement, textMeasurer: DOMTextMeasurer)
   // Remove the `each-line` keyword while keeping exactly the indent Chrome was
   // already painting in print mode. Generated Knuth–Plass <br>s therefore do
   // not become new indented lines.
-  paragraph.style.setProperty("text-indent", `${indent}px`, "important");
+  paragraph.style.setProperty("text-indent", `${indentCss}px`, "important");
   paragraph.style.setProperty("text-align", "left", "important");
   paragraph.style.setProperty("hyphens", "none", "important");
   paragraph.style.setProperty("-webkit-hyphens", "none", "important");
@@ -354,10 +355,13 @@ function justifyParagraph(paragraph: HTMLElement, textMeasurer: DOMTextMeasurer)
       lineSpan.style.paddingInlineStart = `${line.indent}px`;
     }
 
-    const finalWordSpacing = baseWordSpacing + line.extraWordSpacing;
+    // `extraWordSpacing` is in tex-linebreak / DOM-geometry units. CSS
+    // `word-spacing` expects CSS px, so convert it back before assigning it.
+    const extraWordSpacingCss = layoutPxToCssPx(line.extraWordSpacing, geometryScale);
+    const finalWordSpacing = baseWordSpacingCss + extraWordSpacingCss;
     if (Math.abs(finalWordSpacing) > 1e-5) {
       lineSpan.style.wordSpacing = `${finalWordSpacing}px`;
-    } else if (Math.abs(line.extraWordSpacing) > 1e-5) {
+    } else if (Math.abs(extraWordSpacingCss) > 1e-5) {
       // Explicitly zero inherited spacing when the required final value is zero.
       lineSpan.style.wordSpacing = "0px";
     }
@@ -382,7 +386,7 @@ function justifyParagraph(paragraph: HTMLElement, textMeasurer: DOMTextMeasurer)
   // materialized line against its *actual* rendered right edge. This prevents
   // cumulative measurement error from clipping words and makes the visible
   // justification exact.
-  correctRenderedLineSpacing(paragraph, renderedSpans);
+  correctRenderedLineSpacing(paragraph, renderedSpans, geometryScale);
 
   return {
     restore() {
@@ -394,10 +398,6 @@ function justifyParagraph(paragraph: HTMLElement, textMeasurer: DOMTextMeasurer)
 }
 
 function paragraphIsSupported(paragraph: HTMLElement): boolean {
-  if (paragraph.querySelector(".dialogue")) {
-    return false;
-  }
-
   const paragraphStyle = getComputedStyle(paragraph);
   if (paragraphStyle.textTransform !== "none") {
     console.warn("print-justify: text-transform is unsupported", paragraph);
@@ -607,14 +607,14 @@ function isRomanianProtectedWord(word: WordRecord): boolean {
   // House/editorial rule: do not divide any Romanian orthographic group that
   // already contains a visible hyphen. This covers să-i, i-am, într-o, etc.,
   // and intentionally extends the same protection to longer compounds.
-  if (JUSTIFICATION.protectRomanianHyphenatedWords && /[-\u2010\u2011]/u.test(text)) {
+  if (/[-\u2010\u2011]/u.test(text)) {
     return true;
   }
 
   // Probable proper names: protect title-case words in mid-sentence. Sentence-
   // initial title-case words are left to the normal hyphenator because their
   // capitalization alone carries no proper-name information.
-  return JUSTIFICATION.protectRomanianMidSentenceTitlecase && !word.sentenceInitial && isTitleCaseLexeme(text);
+  return !word.sentenceInitial && isTitleCaseLexeme(text);
 }
 
 function isTitleCaseLexeme(text: string): boolean {
@@ -735,7 +735,7 @@ function layoutSegment(
   items.push({
     type: "glue",
     width: 0,
-    stretch: MAX_COST,
+    stretch: measure * JUSTIFICATION.finalLineStretchFactor,
     shrink: 0,
     startPoint: segment.endPoint,
     endPoint: segment.endPoint,
@@ -1170,9 +1170,13 @@ function whiteSpaceDisallowsWrapping(whiteSpace: string): boolean {
   return whiteSpace === "nowrap" || whiteSpace === "pre";
 }
 
-function contentBoxRight(element: HTMLElement, style: CSSStyleDeclaration): number {
+function contentBoxRight(element: HTMLElement, style: CSSStyleDeclaration, geometryScale: number): number {
   const rect = element.getBoundingClientRect();
-  return rect.right - parseCssPx(style.borderRightWidth) - parseCssPx(style.paddingRight);
+  return (
+    rect.right -
+    cssPxToLayoutPx(parseCssPx(style.borderRightWidth), geometryScale) -
+    cssPxToLayoutPx(parseCssPx(style.paddingRight), geometryScale)
+  );
 }
 
 interface RenderedSpanInfo {
@@ -1180,9 +1184,9 @@ interface RenderedSpanInfo {
   justifyToMeasure: boolean;
 }
 
-function correctRenderedLineSpacing(paragraph: HTMLElement, lines: RenderedSpanInfo[]): void {
+function correctRenderedLineSpacing(paragraph: HTMLElement, lines: RenderedSpanInfo[], geometryScale: number): void {
   const paragraphStyle = getComputedStyle(paragraph);
-  const targetRight = contentBoxRight(paragraph, paragraphStyle);
+  const targetRight = contentBoxRight(paragraph, paragraphStyle, geometryScale);
 
   // Do not estimate the number of rendered spaces from textContent. HTML
   // whitespace collapsing, trailing source whitespace and nested inline markup
@@ -1238,15 +1242,59 @@ function correctRenderedLineSpacing(paragraph: HTMLElement, lines: RenderedSpanI
   }
 }
 
-function contentBoxWidth(element: HTMLElement, style: CSSStyleDeclaration): number {
+function contentBoxWidth(element: HTMLElement, style: CSSStyleDeclaration, geometryScale: number): number {
   const rect = element.getBoundingClientRect();
   return (
     rect.width -
-    parseCssPx(style.borderLeftWidth) -
-    parseCssPx(style.borderRightWidth) -
-    parseCssPx(style.paddingLeft) -
-    parseCssPx(style.paddingRight)
+    cssPxToLayoutPx(parseCssPx(style.borderLeftWidth), geometryScale) -
+    cssPxToLayoutPx(parseCssPx(style.borderRightWidth), geometryScale) -
+    cssPxToLayoutPx(parseCssPx(style.paddingLeft), geometryScale) -
+    cssPxToLayoutPx(parseCssPx(style.paddingRight), geometryScale)
   );
+}
+
+/**
+ * Measure how one local CSS pixel maps into the geometric coordinate system
+ * returned by getBoundingClientRect(). A value of 0.5 means `width: 100px`
+ * paints as 50 geometric px in this subtree.
+ */
+function measureGeometryScale(element: HTMLElement): number {
+  const probe = element.ownerDocument.createElement("span");
+  probe.setAttribute("aria-hidden", "true");
+  probe.style.position = "absolute";
+  probe.style.visibility = "hidden";
+  probe.style.pointerEvents = "none";
+  probe.style.display = "inline-block";
+  probe.style.boxSizing = "content-box";
+  probe.style.width = "100px";
+  probe.style.height = "0";
+  probe.style.padding = "0";
+  probe.style.margin = "0";
+  probe.style.border = "0";
+  probe.style.whiteSpace = "nowrap";
+
+  element.append(probe);
+  const measuredWidth = probe.getBoundingClientRect().width;
+  probe.remove();
+
+  const scale = measuredWidth / 100;
+  if (!(scale > 0) || !Number.isFinite(scale)) {
+    console.warn("print-justify: could not determine CSS/layout scale; assuming 1", {
+      element,
+      measuredWidth,
+    });
+    return 1;
+  }
+
+  return scale;
+}
+
+function cssPxToLayoutPx(cssPx: number, geometryScale: number): number {
+  return cssPx * geometryScale;
+}
+
+function layoutPxToCssPx(layoutPx: number, geometryScale: number): number {
+  return layoutPx / geometryScale;
 }
 
 function parseCssPx(value: string): number {
