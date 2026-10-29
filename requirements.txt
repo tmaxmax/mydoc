@@ -1,4 +1,4 @@
-brotli==1.2.0
+brotli==1.2.1
 click==8.4.1
 fonttools==4.63.0
 PyYAML==6.0.3
